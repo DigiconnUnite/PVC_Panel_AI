@@ -50,7 +50,7 @@ export async function analyzeImage(imageId: string): Promise<AnalysisResult> {
   return res.json()
 }
 
-export async function visualizeRoom(input: { imageId: string; productId: string; maskIndex: number }) {
+export async function visualizeRoom(input: { imageId: string; productId: string; maskIndex?: number; customMask?: string }) {
   const res = await fetch(`${API_BASE_URL}/api/visualize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -63,5 +63,13 @@ export async function visualizeRoom(input: { imageId: string; productId: string;
 export async function getProducts(): Promise<Product[]> {
   const res = await fetch(`${API_BASE_URL}/api/products`)
   if (!res.ok) throw new Error(`Products failed: ${res.status}`)
-  return res.json()
+  const data = await res.json()
+  
+  // Flatten the structured response into a single array
+  const products: Product[] = []
+  if (data.pvc_panels) products.push(...data.pvc_panels)
+  if (data.wallpapers) products.push(...data.wallpapers)
+  if (data.paints) products.push(...data.paints)
+  
+  return products
 }

@@ -1,176 +1,234 @@
-// Minimal canvas that allows selecting masks by clicking approximate regions.
-// NOTE: This is a simplified, client-only demo that renders a selected mask as an overlay.
-
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
+import { MousePointer2, Brush, Eraser } from "lucide-react"
 
-type Props = {
+// Dotted Background Component
+const DottedBackground = () => {
+  return (
+    <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+  )
+}
+
+// Visualizer Canvas Component
+interface VisualizerCanvasProps {
   imageUrl: string
-  masks: string[] // base64-encoded PNGs (no data URL prefix)
+  masks: string[]
   selectedMaskIndex: number | null
-  onSelectMask: (index: number | null) => void
-  tool?: "select" | "brush" | "erase"
+  onSelectMask: (index: number) => void
+  tool: "select" | "brush" | "erase"
+  className?: string
+  onCustomMaskUpdate?: (maskDataUrl: string) => void
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = url
-  })
-}
+const VisualizerCanvas = ({
+  imageUrl,
+  masks,
+  selectedMaskIndex,
+  onSelectMask,
+  tool,
+  className,
+  onCustomMaskUpdate
+}: VisualizerCanvasProps) => {
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+  const [hoveredMask, setHoveredMask] = useState<number | null>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [customMask, setCustomMask] = useState<string | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
 
-function loadMask(data: string): Promise<HTMLImageElement> {
-  // data is base64 PNG without prefix; add one
-  return loadImage(`data:image/png;base64,${data}`)
-}
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    setImageSize({
+      width: img.naturalWidth,
+      height: img.naturalHeight
+    })
+  }, [])
 
-export default function VisualizerCanvas({ imageUrl, masks, selectedMaskIndex, onSelectMask, tool = "select" }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const hitCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const maskImagesRef = useRef<HTMLImageElement[] | null>(null)
-
-  useEffect(() => {
-    let disposed = false
-
-    async function draw() {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
-
-      const img = await loadImage(imageUrl)
-      if (disposed) return
-
-      const maxW = 900
-      const scale = img.width > maxW ? maxW / img.width : 1
-      const w = Math.floor(img.width * scale)
-      const h = Math.floor(img.height * scale)
-
-      canvas.width = w
-      canvas.height = h
-      if (!hitCanvasRef.current) {
-        hitCanvasRef.current = document.createElement("canvas")
-      }
-      hitCanvasRef.current.width = w
-      hitCanvasRef.current.height = h
-
-      ctx.clearRect(0, 0, w, h)
-      ctx.drawImage(img, 0, 0, w, h)
-
-      if (selectedMaskIndex != null && masks[selectedMaskIndex]) {
-        const maskImg = await loadMask(masks[selectedMaskIndex])
-        if (disposed) return
-        ctx.globalAlpha = 0.35
-        ctx.drawImage(maskImg, 0, 0, w, h)
-        ctx.globalAlpha = 1
-      }
+  const handleMaskClick = useCallback((index: number) => {
+    if (tool === "select") {
+      onSelectMask(index)
     }
+  }, [tool, onSelectMask])
 
-    draw()
-    return () => {
-      disposed = true
+  const handleMaskHover = useCallback((index: number | null) => {
+    setHoveredMask(index)
+  }, [])
+
+  const getCanvasCoordinates = useCallback((e: React.MouseEvent) => {
+    if (!canvasRef.current || !imageRef.current) return null
+
+    const canvas = canvasRef.current
+    const image = imageRef.current
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = image.naturalWidth / image.width
+    const scaleY = image.naturalHeight / image.height
+
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
     }
-  }, [imageUrl, masks, selectedMaskIndex])
+  }, [])
 
-  // Cache mask images for fast hit-testing
-  useEffect(() => {
-    let cancelled = false
-    async function loadAll() {
-      const imgs: HTMLImageElement[] = []
-      for (const m of masks) {
-        try {
-          const img = await loadMask(m)
-          if (cancelled) return
-          imgs.push(img)
-        } catch {
-          imgs.push(new Image())
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (tool === "brush" || tool === "erase") {
+      setIsDrawing(true)
+      const coords = getCanvasCoordinates(e)
+      if (coords && canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d")
+        if (ctx) {
+          ctx.beginPath()
+          ctx.arc(coords.x, coords.y, tool === "brush" ? 10 : 15, 0, 2 * Math.PI)
+          ctx.fillStyle = tool === "brush" ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 1)"
+          ctx.fill()
         }
       }
-      maskImagesRef.current = imgs
     }
-    loadAll()
-    return () => {
-      cancelled = true
-      maskImagesRef.current = null
-    }
-  }, [masks])
+  }, [tool, getCanvasCoordinates])
 
-  function getCanvasPoint(evt: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } | null {
-    const canvas = canvasRef.current
-    if (!canvas) return null
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = (evt.clientX - rect.left) * scaleX
-    const y = (evt.clientY - rect.top) * scaleY
-    return { x: Math.max(0, Math.min(canvas.width - 1, x)), y: Math.max(0, Math.min(canvas.height - 1, y)) }
-  }
-
-  async function handleCanvasClick(evt: React.MouseEvent<HTMLCanvasElement>) {
-    if (tool !== "select") return
-    const point = getCanvasPoint(evt)
-    if (!point) return
-    const { x, y } = point
-    const hit = hitCanvasRef.current
-    if (!hit) return
-    const hctx = hit.getContext("2d")
-    if (!hctx) return
-
-    // Test masks top-down; select first with alpha > threshold at point
-    const maskImages = maskImagesRef.current || []
-    const threshold = 10 // 0..255
-    let chosen: number | null = null
-    for (let i = 0; i < maskImages.length; i += 1) {
-      const m = maskImages[i]
-      if (!m || !m.width || !m.height) continue
-      hctx.clearRect(0, 0, hit.width, hit.height)
-      hctx.drawImage(m, 0, 0, hit.width, hit.height)
-      const pixel = hctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data
-      const alpha = pixel[3] // 0..255
-      if (alpha > threshold) {
-        chosen = i
-        break
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDrawing && (tool === "brush" || tool === "erase") && canvasRef.current) {
+      const coords = getCanvasCoordinates(e)
+      if (coords) {
+        const ctx = canvasRef.current.getContext("2d")
+        if (ctx) {
+          ctx.beginPath()
+          ctx.arc(coords.x, coords.y, tool === "brush" ? 10 : 15, 0, 2 * Math.PI)
+          ctx.fillStyle = tool === "brush" ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 1)"
+          ctx.fill()
+        }
       }
     }
-    onSelectMask(chosen)
-  }
+  }, [isDrawing, tool, getCanvasCoordinates])
+
+  const handleMouseUp = useCallback(() => {
+    if (isDrawing && canvasRef.current) {
+      setIsDrawing(false)
+      // Convert canvas to data URL and notify parent
+      const dataUrl = canvasRef.current.toDataURL("image/png")
+      setCustomMask(dataUrl)
+      if (onCustomMaskUpdate) {
+        onCustomMaskUpdate(dataUrl)
+      }
+    }
+  }, [isDrawing, onCustomMaskUpdate])
+
+  // Clear custom mask when switching tools
+  useEffect(() => {
+    if (tool === "select" && canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d")
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+        setCustomMask(null)
+      }
+    }
+  }, [tool])
 
   return (
-    <div className="w-full">
-      <div
-        className="relative w-full overflow-hidden rounded-xl border bg-white shadow-sm">
-        <div
-          className="flex items-center justify-center p-4 md:p-6 bg-[radial-gradient(circle,_rgba(0,0,0,0.06)_1px,_transparent_1px)] bg-[size:16px_16px]">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-auto block max-h-[70vh]"
-            aria-label="Visualizer canvas"
-            onClick={handleCanvasClick}
+    <div className={`relative ${className}`}>
+      <DottedBackground />
+
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div className="relative">
+          {/* Main Image */}
+          <img
+            ref={imageRef}
+            src={imageUrl}
+            alt="Room visualization"
+            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+            onLoad={handleImageLoad}
           />
+
+          {/* Drawing Canvas */}
+          {(tool === "brush" || tool === "erase") && (
+            <canvas
+              ref={canvasRef}
+              width={imageSize.width}
+              height={imageSize.height}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-auto"
+              style={{
+                width: imageRef.current?.width || "100%",
+                height: imageRef.current?.height || "auto"
+              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            />
+          )}
+
+          {/* Mask Overlays */}
+          {imageSize.width > 0 && masks.map((mask, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 cursor-pointer transition-all duration-200 group ${selectedMaskIndex === index
+                ? 'ring-4 ring-blue-500 ring-opacity-70'
+                : hoveredMask === index
+                  ? 'ring-2 ring-blue-300 ring-opacity-50'
+                  : 'ring-0'
+                }`}
+              onClick={() => handleMaskClick(index)}
+              onMouseEnter={() => handleMaskHover(index)}
+              onMouseLeave={() => handleMaskHover(null)}
+              title={`Surface ${index + 1} - Click to select`}
+            >
+              {/* Semi-transparent overlay for visual feedback */}
+              <div
+                className={`absolute inset-0 transition-all duration-200 ${selectedMaskIndex === index
+                  ? 'bg-blue-500 bg-opacity-20'
+                  : hoveredMask === index
+                    ? 'bg-blue-300 bg-opacity-10'
+                    : 'bg-transparent'
+                  }`}
+              />
+
+              {/* Mask image overlay */}
+              <img
+                src={`data:image/png;base64,${mask}`}
+                alt={`Mask ${index + 1}`}
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-60"
+              />
+
+              {/* Selection indicator */}
+              {selectedMaskIndex === index && (
+                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
+                  Selected
+                </div>
+              )}
+
+              {/* Hover indicator */}
+              {hoveredMask === index && selectedMaskIndex !== index && (
+                <div className="absolute top-2 right-2 bg-blue-300 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
+                  Hover
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Tool indicator */}
+          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md flex items-center gap-2">
+            {tool === "select" && <MousePointer2 className="w-4 h-4 text-blue-500" />}
+            {tool === "brush" && <Brush className="w-4 h-4 text-green-500" />}
+            {tool === "erase" && <Eraser className="w-4 h-4 text-red-500" />}
+            <span className="text-sm font-medium capitalize text-slate-700">
+              {tool === "select" ? "Selection Mode" : tool === "brush" ? "Brush Mode" : "Erase Mode"}
+            </span>
+          </div>
+
+          {/* Instructions overlay */}
+          {masks.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+              <div className="text-center text-slate-500">
+                <MousePointer2 className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                <p className="text-sm font-medium">No surfaces detected</p>
+                <p className="text-xs">Upload an image to see segmentation results</p>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-      <div className="flex flex-wrap gap-2 p-3 border mt-3 bg-white rounded-lg">
-        {masks.map((_, i) => (
-          <button
-            key={i}
-            className={`text-xs rounded px-2 py-1 border ${
-              selectedMaskIndex === i ? "bg-primary text-primary-foreground" : ""
-            }`}
-            onClick={() => onSelectMask(selectedMaskIndex === i ? null : i)}
-            aria-pressed={selectedMaskIndex === i}
-            title={`Select mask #${i + 1}`}
-          >
-            Mask {i + 1}
-          </button>
-        ))}
-        {masks.length === 0 && (
-          <p className="text-xs text-muted-foreground">No masks yet. Make sure analysis finished.</p>
-        )}
       </div>
     </div>
   )
 }
+
+export default VisualizerCanvas
