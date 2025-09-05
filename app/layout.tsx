@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import './globals.css'
+import Background from '@/components/ui/Background'
 
 export const metadata: Metadata = {
   title: 'Wall Panel AI',
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} flex flex-col max-h-screen min-h-screen`}>
         <Navigation />
+        <Background />
         <main className="flex-1 bg-gray-50 pt-16 pb-16">
           {children}
         </main>

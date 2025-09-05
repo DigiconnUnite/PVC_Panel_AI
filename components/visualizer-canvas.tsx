@@ -41,6 +41,10 @@ const VisualizerCanvas = ({
   const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 })
   const [overlayScale, setOverlayScale] = useState(1.0)
   const [showOverlayControls, setShowOverlayControls] = useState(false)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [isPanning, setIsPanning] = useState(false)
+  const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -122,7 +126,10 @@ const VisualizerCanvas = ({
   }, [])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (tool === "brush" || tool === "erase") {
+    if (tool === "select" && e.button === 0) { // Left mouse button for panning
+      setIsPanning(true)
+      setLastPanPoint({ x: e.clientX, y: e.clientY })
+    } else if (tool === "brush" || tool === "erase") {
       setIsDrawing(true)
       const coords = getCanvasCoordinates(e)
       if (coords && canvasRef.current) {
@@ -204,7 +211,15 @@ const VisualizerCanvas = ({
   }, [])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isDrawing && (tool === "brush" || tool === "erase") && canvasRef.current) {
+    if (isPanning && tool === "select") {
+      const deltaX = e.clientX - lastPanPoint.x
+      const deltaY = e.clientY - lastPanPoint.y
+      setPanOffset(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }))
+      setLastPanPoint({ x: e.clientX, y: e.clientY })
+    } else if (isDrawing && (tool === "brush" || tool === "erase") && canvasRef.current) {
       const coords = getCanvasCoordinates(e)
       if (coords) {
         const ctx = canvasRef.current.getContext("2d")
@@ -234,10 +249,12 @@ const VisualizerCanvas = ({
         setLassoPoints(prev => [...prev, coords])
       }
     }
-  }, [isDrawing, tool, getCanvasCoordinates, brushSize, isLassoDrawing])
+  }, [isPanning, tool, lastPanPoint, isDrawing, getCanvasCoordinates, brushSize, isLassoDrawing])
 
   const handleMouseUp = useCallback(() => {
-    if (isDrawing && canvasRef.current) {
+    if (isPanning) {
+      setIsPanning(false)
+    } else if (isDrawing && canvasRef.current) {
       setIsDrawing(false)
       // Convert canvas to data URL and notify parent
       const dataUrl = canvasRef.current.toDataURL("image/png")
@@ -274,7 +291,7 @@ const VisualizerCanvas = ({
 
       setLassoPoints([])
     }
-  }, [isDrawing, onCustomMaskUpdate, isLassoDrawing, tool, lassoPoints])
+  }, [isPanning, isDrawing, onCustomMaskUpdate, isLassoDrawing, tool, lassoPoints])
 
   // Clear custom mask when switching tools
   useEffect(() => {
@@ -300,6 +317,19 @@ const VisualizerCanvas = ({
     }
   }, [])
 
+  // Wheel event handler for zooming
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1
+    setZoom(prev => Math.max(0.1, Math.min(5, prev * zoomFactor)))
+  }, [])
+
+  // Reset pan and zoom
+  const resetView = useCallback(() => {
+    setPanOffset({ x: 0, y: 0 })
+    setZoom(1)
+  }, [])
+
   return (
     <div className={`relative ${className}`}>
       <DottedBackground />
@@ -311,8 +341,14 @@ const VisualizerCanvas = ({
             ref={imageRef}
             src={imageUrl}
             alt="Room visualization"
-            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg cursor-move"
             onLoad={handleImageLoad}
+            onWheel={handleWheel}
+            style={{
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+            }}
           />
 
           {/* Drawing Canvas */}
@@ -391,106 +427,15 @@ const VisualizerCanvas = ({
             </div>
           )}
 
-          {/* Overlay Controls */}
-          {(selectedMaskIndex.length > 0 || customMask) && (
-            <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200">
-              <button
-                onClick={() => setShowOverlayControls(!showOverlayControls)}
-                className="w-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-t-lg flex items-center justify-between"
-              >
-                <span className="flex items-center gap-2">
-                  <Layers className="w-4 h-4" />
-                  Overlay Controls
-                </span>
-                <span className={`transform transition-transform ${showOverlayControls ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
-              </button>
-
-              {showOverlayControls && (
-                <div className="p-3 space-y-3 border-t border-slate-200">
-                  {/* Opacity Control */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Opacity: {Math.round(overlayOpacity * 100)}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="1"
-                      step="0.1"
-                      value={overlayOpacity}
-                      onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Scale Control */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Scale: {overlayScale.toFixed(1)}x
-                    </label>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="2"
-                      step="0.1"
-                      value={overlayScale}
-                      onChange={(e) => setOverlayScale(parseFloat(e.target.value))}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Position Controls */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1">X Offset</label>
-                      <input
-                        type="range"
-                        min="-50"
-                        max="50"
-                        value={overlayPosition.x}
-                        onChange={(e) => setOverlayPosition(prev => ({ ...prev, x: parseInt(e.target.value) }))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1">Y Offset</label>
-                      <input
-                        type="range"
-                        min="-50"
-                        max="50"
-                        value={overlayPosition.y}
-                        onChange={(e) => setOverlayPosition(prev => ({ ...prev, y: parseInt(e.target.value) }))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Reset Button */}
-                  <button
-                    onClick={() => {
-                      setOverlayOpacity(0.7)
-                      setOverlayPosition({ x: 0, y: 0 })
-                      setOverlayScale(1.0)
-                    }}
-                    className="w-full px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded text-slate-700 transition-colors"
-                  >
-                    Reset to Default
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Mask Overlays */}
           {imageSize.width > 0 && masks.map((mask, index) => (
             <div
               key={index}
               className={`absolute inset-0 cursor-pointer transition-all duration-200 group ${selectedMaskIndex.includes(index)
-                ? 'ring-4 ring-blue-500 ring-opacity-70'
+                ? 'ring-2 ring-green-500 ring-opacity-60'
                 : hoveredMask === index
-                  ? 'ring-2 ring-blue-300 ring-opacity-50'
+                  ? 'ring-1 ring-amber-400 ring-opacity-40'
                   : 'ring-0'
                 }`}
               onClick={() => handleMaskClick(index)}
@@ -498,12 +443,12 @@ const VisualizerCanvas = ({
               onMouseLeave={() => handleMaskHover(null)}
               title={`Surface ${index + 1} - Click to ${selectedMaskIndex.includes(index) ? 'deselect' : 'select'}`}
             >
-              {/* Semi-transparent overlay for visual feedback */}
+              {/* Subtle overlay for visual feedback */}
               <div
                 className={`absolute inset-0 transition-all duration-200 ${selectedMaskIndex.includes(index)
-                  ? 'bg-blue-500 bg-opacity-20'
+                  ? 'bg-green-500 bg-opacity-8'
                   : hoveredMask === index
-                    ? 'bg-blue-300 bg-opacity-10'
+                    ? 'bg-amber-400 bg-opacity-5'
                     : 'bg-transparent'
                   }`}
               />
@@ -512,19 +457,19 @@ const VisualizerCanvas = ({
               <img
                 src={`data:image/png;base64,${mask}`}
                 alt={`Mask ${index + 1}`}
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-60"
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-50"
               />
 
               {/* Selection indicator */}
               {selectedMaskIndex.includes(index) && (
-                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
-                  Selected
+                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
+                  ✓ Selected
                 </div>
               )}
 
-              {/* Hover indicator */}
+              {/* Hover indicator - more subtle */}
               {hoveredMask === index && !selectedMaskIndex.includes(index) && (
-                <div className="absolute top-2 right-2 bg-blue-300 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
+                <div className="absolute top-2 right-2 bg-amber-400 text-slate-800 text-xs px-2 py-1 rounded-full font-medium shadow-sm">
                   Click to select
                 </div>
               )}

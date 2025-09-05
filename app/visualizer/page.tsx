@@ -96,9 +96,9 @@ export default function VisualizerPage() {
 
   return (
     <main className="min-h-screen relative p-0 md:p-0">
-      <Background />
 
-      <div className="mx-auto max-w-[98%] px-2 md:px-8" style={{ height: 'calc(100vh - 8rem)' }}>
+
+      <div className="mx-auto max-w-[98%] px-2 md:px-8 pt-5 pb-5" style={{ height: 'calc(100vh - 8rem)' }}>
 
 
         {/* Layout: Library (fit), Canvas (flex-grow), Inspector (small) */}
@@ -107,7 +107,7 @@ export default function VisualizerPage() {
         >
           {/* Sidebar library (elements/products) */}
           <aside
-            className="bg-white border rounded-2xl shadow-lg p-6 flex flex-col min-w-[320px] max-w-[380px] flex-shrink-0"
+            className="bg-white border rounded-2xl shadow-lg p-6  flex flex-col min-w-[320px] max-w-[380px] flex-shrink-0"
             style={{ width: "fit-content", height: '100%' }}
           >
             <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
@@ -180,7 +180,7 @@ export default function VisualizerPage() {
                         <div className="mt-2 space-y-1">
                           <p className="text-xs font-semibold text-slate-800 truncate">{p.name}</p>
                           <div className="flex items-center justify-between">
-                            <p className="text-xs text-slate-500">${p.price}</p>
+
                             {p.brand && (
                               <p className="text-xs text-slate-400 truncate">{p.brand}</p>
                             )}
