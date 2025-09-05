@@ -62,50 +62,6 @@ def generate_product_images():
                 "colors": ["#2C3E50", "#34495E", "#5D6D7E"],
                 "text": "Geometric PVC"
             }
-        ],
-        "wallpapers": [
-            {
-                "name": "blue-modern",
-                "colors": ["#3b82f6", "#1e40af", "#93c5fd"],
-                "text": "Blue Modern"
-            },
-            {
-                "name": "floral-pattern",
-                "colors": ["#FF69B4", "#FFB6C1", "#FFC0CB"],
-                "text": "Floral Pattern"
-            },
-            {
-                "name": "striped",
-                "colors": ["#2C3E50", "#34495E", "#5D6D7E"],
-                "text": "Striped"
-            },
-            {
-                "name": "abstract-art",
-                "colors": ["#E74C3C", "#F39C12", "#F1C40F"],
-                "text": "Abstract Art"
-            }
-        ],
-        "paints": [
-            {
-                "name": "white-pure",
-                "colors": ["#FFFFFF", "#F8F8FF", "#F5F5F5"],
-                "text": "Pure White"
-            },
-            {
-                "name": "navy-blue",
-                "colors": ["#000080", "#191970", "#00008B"],
-                "text": "Navy Blue"
-            },
-            {
-                "name": "sage-green",
-                "colors": ["#9CAF88", "#8FBC8F", "#90EE90"],
-                "text": "Sage Green"
-            },
-            {
-                "name": "warm-beige",
-                "colors": ["#F5F5DC", "#DEB887", "#D2B48C"],
-                "text": "Warm Beige"
-            }
         ]
     }
     
@@ -123,23 +79,27 @@ def generate_product_images():
         for product in category_products:
             # Main product image (800x600)
             main_img = create_placeholder_image(
-                800, 600, 
-                product["text"], 
+                800, 600,
+                product["text"],
                 hex_to_rgb(product["colors"][0]),
                 (0, 0, 0) if product["colors"][0] in ["#FFFFFF", "#F8F8FF", "#F5F5F5"] else (255, 255, 255)
             )
-            main_img.save(f"{category_dir}/{product['name']}.png")
-            
+            main_img.save(f"{category_dir}/{product['name']}.png", optimize=True, quality=85)
+
+            # Mobile optimized image (400x300)
+            mobile_img = main_img.resize((400, 300), Image.LANCZOS)
+            mobile_img.save(f"{category_dir}/{product['name']}-mobile.png", optimize=True, quality=85)
+
             # Thumbnail image (300x300)
             thumb_img = create_placeholder_image(
-                300, 300, 
-                product["text"], 
+                300, 300,
+                product["text"],
                 hex_to_rgb(product["colors"][0]),
                 (0, 0, 0) if product["colors"][0] in ["#FFFFFF", "#F8F8FF", "#F5F5F5"] else (255, 255, 255)
             )
-            thumb_img.save(f"{thumbs_dir}/{product['name']}.png")
-            
-            print(f"  Generated {product['name']}.png and thumbnail")
+            thumb_img.save(f"{thumbs_dir}/{product['name']}.png", optimize=True, quality=85)
+
+            print(f"  Generated {product['name']}.png, mobile version, and thumbnail")
 
 if __name__ == "__main__":
     print("Generating product images...")
