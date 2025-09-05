@@ -95,20 +95,20 @@ export default function VisualizerPage() {
   }
 
   return (
-    <main className="min-h-screen relative p-0 md:p-0 ">
+    <main className="min-h-screen relative p-0 md:p-0">
       <Background />
 
-      <div className="mx-auto max-w-[98%] pt-5 px-2 md:px-8">
+      <div className="mx-auto max-w-[98%] px-2 md:px-8" style={{ height: 'calc(100vh - 8rem)' }}>
 
 
         {/* Layout: Library (fit), Canvas (flex-grow), Inspector (small) */}
         <div
-          className="w-full flex flex-col lg:flex-row gap-8"
+          className="w-full flex flex-col lg:flex-row gap-8 h-full"
         >
           {/* Sidebar library (elements/products) */}
           <aside
-            className="bg-white border rounded-2xl shadow-lg p-6 h-full sticky top-6 self-start min-w-[320px] max-w-[380px] flex-shrink-0"
-            style={{ width: "fit-content" }}
+            className="bg-white border rounded-2xl shadow-lg p-6 flex flex-col min-w-[320px] max-w-[380px] flex-shrink-0"
+            style={{ width: "fit-content", height: '100%' }}
           >
             <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
@@ -117,7 +117,7 @@ export default function VisualizerPage() {
             <p className="text-xs text-slate-500 mb-4">Elements you can apply to the selected area.</p>
 
             {/* Category Tabs */}
-            <div className="flex gap-1 mb-4 p-1 bg-slate-100 rounded-lg">
+            <div className="flex gap-1 mb-4 p-1 bg-slate-100 rounded-lg flex-shrink-0">
               {([
                 { key: "wallpapers", label: "Wallpapers", icon: <Layers className="w-3 h-3" /> },
                 { key: "paints", label: "Paints", icon: <Paintbrush className="w-3 h-3" /> },
@@ -149,13 +149,15 @@ export default function VisualizerPage() {
               })}
             </div>
 
-            {loadingProducts ? (
-              <div className="flex items-center gap-2 text-slate-500 text-sm py-8 justify-center">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Loading…
-              </div>
-            ) : (
-                <div className="grid grid-cols-2 gap-3">
+            {/* Scrollable Products Section */}
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              {loadingProducts ? (
+                <div className="flex items-center gap-2 text-slate-500 text-sm py-8 justify-center flex-1">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Loading…
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 overflow-y-auto flex-1 pr-2" style={{ scrollbarWidth: 'thin' }}>
                   {filteredProducts && filteredProducts.length > 0 ? (
                     filteredProducts.map((p) => (
                       <button
@@ -197,9 +199,12 @@ export default function VisualizerPage() {
                       </div>
                     </div>
                   )}
-              </div>
-            )}
-            <div className="text-xs text-slate-400 mt-4 flex items-center gap-2">
+                </div>
+              )}
+            </div>
+
+            {/* Fixed footer info */}
+            <div className="text-xs text-slate-400 mt-4 flex items-center gap-2 flex-shrink-0">
               <Info className="w-4 h-4" />
               {(selectedMasks.length === 0 && !customMask)
                 ? "Tip: Select surfaces in the image or use brush/erase tools to draw a custom area."
@@ -295,79 +300,85 @@ export default function VisualizerPage() {
           </section>
 
           {/* Right: Inspector */}
-          <aside className="bg-white border rounded-2xl shadow-lg p-6 h-fit sticky top-6 self-start min-w-[280px] max-w-[320px] flex-shrink-0">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <aside className="bg-white border rounded-2xl shadow-lg p-6 flex flex-col min-w-[280px] max-w-[320px] flex-shrink-0" style={{ height: '100%' }}>
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 flex-shrink-0">
               <Eye className="w-5 h-5 text-primary" />
               Inspector
             </h2>
 
-            {/* Surface Masks Panel */}
-            {masks.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">Recognized Surfaces</h3>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {masks.map((mask, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        const newSelected = [...selectedMasks]
-                        const maskIndex = newSelected.indexOf(index)
-                        if (maskIndex > -1) {
-                          newSelected.splice(maskIndex, 1)
-                        } else {
-                          newSelected.push(index)
-                        }
-                        setSelectedMasks(newSelected)
-                      }}
-                      className={`relative p-2 border rounded-lg transition-all ${
-                        selectedMasks.includes(index)
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                      title={`Surface ${index + 1} - ${selectedMasks.includes(index) ? 'Selected' : 'Click to select'}`}
-                    >
-                      <div className="aspect-square w-full overflow-hidden rounded border bg-slate-100 flex items-center justify-center">
-                        <img
-                          src={`data:image/png;base64,${mask}`}
-                          alt={`Surface ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="mt-1 text-xs text-center font-medium">
-                        #{index + 1}
-                      </div>
-                      {selectedMasks.includes(index) && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              {/* Surface Masks Panel */}
+              {masks.length > 0 && (
+                <div className="mb-6 flex-shrink-0">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Recognized Surfaces</h3>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+                    {masks.map((mask, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          const newSelected = [...selectedMasks]
+                          const maskIndex = newSelected.indexOf(index)
+                          if (maskIndex > -1) {
+                            newSelected.splice(maskIndex, 1)
+                          } else {
+                            newSelected.push(index)
+                          }
+                          setSelectedMasks(newSelected)
+                        }}
+                        className={`relative p-2 border rounded-lg transition-all ${
+                          selectedMasks.includes(index)
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                        title={`Surface ${index + 1} - ${selectedMasks.includes(index) ? 'Selected' : 'Click to select'}`}
+                      >
+                        <div className="aspect-square w-full overflow-hidden rounded border bg-slate-100 flex items-center justify-center">
+                          <img
+                            src={`data:image/png;base64,${mask}`}
+                            alt={`Surface ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                      )}
-                    </button>
-                  ))}
+                        <div className="mt-1 text-xs text-center font-medium">
+                          #{index + 1}
+                        </div>
+                        {selectedMasks.includes(index) && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics Panel */}
+              <div className="space-y-3 text-base text-slate-700 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">Image ID:</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 text-xs font-mono">{imageId.slice(0, 8) || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">Masks:</span>
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 text-xs">{masks.length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">Selected:</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${
+                    selectedMasks.length > 0 || customMask ? "bg-primary/10 text-primary font-bold" : "bg-slate-100 text-slate-500"
+                  }`}>
+                    {selectedMasks.length > 0 ? `${selectedMasks.length} surface${selectedMasks.length > 1 ? 's' : ''}` : customMask ? "Custom" : "none"}
+                  </span>
                 </div>
               </div>
-            )}
-
-            <div className="space-y-3 text-base text-slate-700">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Image ID:</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 text-xs font-mono">{imageId.slice(0, 8) || "—"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Masks:</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 text-xs">{masks.length}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Selected:</span>
-                <span className={`px-2 py-0.5 rounded text-xs ${
-                  selectedMasks.length > 0 || customMask ? "bg-primary/10 text-primary font-bold" : "bg-slate-100 text-slate-500"
-                }`}>
-                  {selectedMasks.length > 0 ? `${selectedMasks.length} surface${selectedMasks.length > 1 ? 's' : ''}` : customMask ? "Custom" : "none"}
-                </span>
-              </div>
             </div>
+
+            {/* Fixed Action Button */}
             <button
               onClick={handleReset}
-              className={`mt-6 w-full px-4 py-2 rounded-lg bg-primary text-white text-base font-semibold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow ${
+              className={`mt-4 w-full px-4 py-2 rounded-lg bg-primary text-white text-base font-semibold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow flex-shrink-0 ${
                 !resultUrl && selectedMasks.length === 0 ? "opacity-60 cursor-not-allowed" : ""
               }`}
               disabled={!resultUrl && selectedMasks.length === 0 && !customMask}
