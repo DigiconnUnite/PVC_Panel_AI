@@ -210,38 +210,6 @@ export default function VisualizerPage() {
           {/* Center: Canvas / Result */}
           <section className="min-h-[320px] flex flex-col items-center flex-1 max-w-full">
             <div className="relative rounded-2xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center w-full">
-              {/* Tools bar: now compact, with gap below */}
-              {!resultUrl && (
-                <div className="w-full flex items-center justify-center z-20 mt-2 mb-3">
-                  <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
-                    <ToolButton
-                      toolType="select"
-                      icon={<MousePointer2 className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="brush"
-                      icon={<Brush className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="erase"
-                      icon={<Eraser className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="lasso"
-                      icon={<Lasso className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="magic-wand"
-                      icon={<Wand2 className="w-4 h-4" />}
-                      label=""
-                    />
-                  </div>
-                </div>
-              )}
               {resultUrl ? (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <img
@@ -294,12 +262,90 @@ export default function VisualizerPage() {
             </div>
           </section>
 
-          {/* Right: Inspector / Actions */}
-          <aside className="bg-white border rounded-2xl shadow-lg p-6 h-fit sticky top-6 self-start min-w-[280px] max-w-[320px] flex-shrink-0">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Eye className="w-5 h-5 text-primary" />
-              Inspector
-            </h2>
+          {/* Right: Tools & Inspector */}
+          <aside className="bg-white border rounded-2xl shadow-lg p-6 h-fit sticky top-6 self-start min-w-[320px] max-w-[380px] flex-shrink-0 space-y-6">
+            {/* Tools Panel */}
+            <div className="border-b border-slate-200 pb-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Palette className="w-5 h-5 text-primary" />
+                Tools
+              </h2>
+
+              {/* Tool Selection Grid */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <ToolButton
+                  toolType="select"
+                  icon={<MousePointer2 className="w-5 h-5" />}
+                  label="Select"
+                />
+                <ToolButton
+                  toolType="brush"
+                  icon={<Brush className="w-5 h-5" />}
+                  label="Brush"
+                />
+                <ToolButton
+                  toolType="erase"
+                  icon={<Eraser className="w-5 h-5" />}
+                  label="Erase"
+                />
+                <ToolButton
+                  toolType="lasso"
+                  icon={<Lasso className="w-5 h-5" />}
+                  label="Lasso"
+                />
+                <ToolButton
+                  toolType="magic-wand"
+                  icon={<Wand2 className="w-5 h-5" />}
+                  label="Magic Wand"
+                />
+              </div>
+
+              {/* Current Tool Info */}
+              <div className="bg-slate-50 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  {tool === "select" && <MousePointer2 className="w-4 h-4 text-blue-500" />}
+                  {tool === "brush" && <Brush className="w-4 h-4 text-green-500" />}
+                  {tool === "erase" && <Eraser className="w-4 h-4 text-red-500" />}
+                  {tool === "lasso" && <Lasso className="w-4 h-4 text-purple-500" />}
+                  {tool === "magic-wand" && <Wand2 className="w-4 h-4 text-indigo-500" />}
+                  <span className="text-sm font-semibold capitalize text-slate-800">
+                    {tool === "select" ? "Selection Mode" :
+                     tool === "brush" ? "Brush Mode" :
+                     tool === "erase" ? "Erase Mode" :
+                     tool === "lasso" ? "Lasso Mode" :
+                     tool === "magic-wand" ? "Magic Wand" :
+                     "Unknown Mode"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  {tool === "select" && "Click surfaces to select • Hold Ctrl for multi-select"}
+                  {tool === "brush" && "Draw to add to selection • Adjust brush size with [ ] keys"}
+                  {tool === "erase" && "Draw to remove from selection • Adjust eraser size with [ ] keys"}
+                  {tool === "lasso" && "Click and drag to create free-form selection"}
+                  {tool === "magic-wand" && "Click similar areas to auto-select"}
+                </p>
+              </div>
+
+              {/* Keyboard Shortcuts */}
+              <div className="bg-slate-50 rounded-lg p-3">
+                <h4 className="text-xs font-semibold text-slate-700 mb-2">Keyboard Shortcuts</h4>
+                <div className="grid grid-cols-2 gap-1 text-xs text-slate-600">
+                  <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">S</kbd> Select</span>
+                  <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">B</kbd> Brush</span>
+                  <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">E</kbd> Erase</span>
+                  <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">L</kbd> Lasso</span>
+                  <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">[ ]</kbd> Brush Size</span>
+                  <span><kbd className="px-1 py-0.5 bg-white rounded text-xs">Esc</kbd> Clear</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Inspector Panel */}
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-primary" />
+                Inspector
+              </h2>
 
             {/* Surface Masks Panel */}
             {masks.length > 0 && (
@@ -375,6 +421,7 @@ export default function VisualizerPage() {
               <RefreshCcw className="w-4 h-4" />
               {resultUrl ? "Reset visualization" : "Clear selection"}
             </button>
+            </div>
           </aside>
         </div>
       </div>

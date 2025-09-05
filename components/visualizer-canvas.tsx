@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from "react"
-import { MousePointer2, Brush, Eraser, Lasso, Wand2, CheckCircle } from "lucide-react"
+import { MousePointer2, Brush, Eraser, Lasso, Wand2, CheckCircle, Layers } from "lucide-react"
 
 // Dotted Background Component
 const DottedBackground = () => {
@@ -37,6 +37,10 @@ const VisualizerCanvas = ({
   const [lassoPoints, setLassoPoints] = useState<Array<{x: number, y: number}>>([])
   const [isLassoDrawing, setIsLassoDrawing] = useState(false)
   const [brushSize, setBrushSize] = useState(15)
+  const [overlayOpacity, setOverlayOpacity] = useState(0.7)
+  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 })
+  const [overlayScale, setOverlayScale] = useState(1.0)
+  const [showOverlayControls, setShowOverlayControls] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -387,6 +391,98 @@ const VisualizerCanvas = ({
             </div>
           )}
 
+          {/* Overlay Controls */}
+          {(selectedMaskIndex.length > 0 || customMask) && (
+            <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200">
+              <button
+                onClick={() => setShowOverlayControls(!showOverlayControls)}
+                className="w-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-t-lg flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Layers className="w-4 h-4" />
+                  Overlay Controls
+                </span>
+                <span className={`transform transition-transform ${showOverlayControls ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+
+              {showOverlayControls && (
+                <div className="p-3 space-y-3 border-t border-slate-200">
+                  {/* Opacity Control */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Opacity: {Math.round(overlayOpacity * 100)}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.1"
+                      value={overlayOpacity}
+                      onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Scale Control */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Scale: {overlayScale.toFixed(1)}x
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.1"
+                      value={overlayScale}
+                      onChange={(e) => setOverlayScale(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Position Controls */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">X Offset</label>
+                      <input
+                        type="range"
+                        min="-50"
+                        max="50"
+                        value={overlayPosition.x}
+                        onChange={(e) => setOverlayPosition(prev => ({ ...prev, x: parseInt(e.target.value) }))}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Y Offset</label>
+                      <input
+                        type="range"
+                        min="-50"
+                        max="50"
+                        value={overlayPosition.y}
+                        onChange={(e) => setOverlayPosition(prev => ({ ...prev, y: parseInt(e.target.value) }))}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Reset Button */}
+                  <button
+                    onClick={() => {
+                      setOverlayOpacity(0.7)
+                      setOverlayPosition({ x: 0, y: 0 })
+                      setOverlayScale(1.0)
+                    }}
+                    className="w-full px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded text-slate-700 transition-colors"
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Mask Overlays */}
           {imageSize.width > 0 && masks.map((mask, index) => (
             <div
@@ -435,45 +531,6 @@ const VisualizerCanvas = ({
             </div>
           ))}
 
-          {/* Enhanced Tool indicator with keyboard shortcuts */}
-          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                {tool === "select" && <MousePointer2 className="w-5 h-5 text-blue-500" />}
-                {tool === "brush" && <Brush className="w-5 h-5 text-green-500" />}
-                {tool === "erase" && <Eraser className="w-5 h-5 text-red-500" />}
-                {tool === "lasso" && <Lasso className="w-5 h-5 text-purple-500" />}
-                {tool === "magic-wand" && <Wand2 className="w-5 h-5 text-indigo-500" />}
-                <span className="text-sm font-semibold capitalize text-slate-800">
-                  {tool === "select" ? "Selection Mode" :
-                   tool === "brush" ? "Brush Mode" :
-                   tool === "erase" ? "Erase Mode" :
-                   tool === "lasso" ? "Lasso Mode" :
-                   tool === "magic-wand" ? "Magic Wand" :
-                   "Unknown Mode"}
-                </span>
-              </div>
-              <div className="text-xs text-slate-500 border-l border-slate-300 pl-3">
-                {tool === "select" && "Click surfaces to select • Hold Ctrl for multi-select"}
-                {tool === "brush" && "Draw to add to selection • Adjust brush size with [ ] keys"}
-                {tool === "erase" && "Draw to remove from selection • Adjust eraser size with [ ] keys"}
-                {tool === "lasso" && "Click and drag to create free-form selection"}
-                {tool === "magic-wand" && "Click similar areas to auto-select"}
-              </div>
-            </div>
-
-            {/* Keyboard shortcuts help */}
-            <div className="mt-2 pt-2 border-t border-slate-200">
-              <div className="text-xs text-slate-600 grid grid-cols-2 gap-1">
-                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">S</kbd> Select</span>
-                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">B</kbd> Brush</span>
-                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">E</kbd> Erase</span>
-                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">L</kbd> Lasso</span>
-                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">W</kbd> Magic Wand</span>
-                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">[ ]</kbd> Brush Size</span>
-              </div>
-            </div>
-          </div>
 
           {/* Instructions overlay */}
           {masks.length === 0 && (
