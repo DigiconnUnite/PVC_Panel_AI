@@ -16,6 +16,9 @@ def create_enhanced_data_yaml(original_yaml_path, output_path):
     with open(original_yaml_path, 'r') as f:
         data = yaml.safe_load(f)
 
+    # Get the directory of the original data.yaml
+    original_dir = Path(original_yaml_path).parent
+
     # Check if ceiling class exists
     names = data.get('names', [])
     if 'ceiling' not in [name.lower() for name in names]:
@@ -24,9 +27,23 @@ def create_enhanced_data_yaml(original_yaml_path, output_path):
         data['names'] = names
         data['nc'] = len(names)
 
-        # Save enhanced data.yaml
-        with open(output_path, 'w') as f:
-            yaml.dump(data, f, default_flow_style=False)
+    # Convert relative paths to absolute paths
+    for key in ['train', 'val', 'test']:
+        if key in data:
+            path = data[key]
+            if not Path(path).is_absolute():
+                # Resolve relative to the data.yaml directory
+                abs_path = (original_dir / path).resolve()
+                # Make sure the resolved path exists
+                if abs_path.exists():
+                    data[key] = str(abs_path)
+                else:
+                    print(f"Warning: Path {abs_path} does not exist")
+                    data[key] = str(abs_path)  # Keep it anyway for YOLO to handle
+
+    # Save enhanced data.yaml
+    with open(output_path, 'w') as f:
+        yaml.dump(data, f, default_flow_style=False)
 
     return data
 
@@ -59,11 +76,9 @@ def train_room_segmentation_model(
     output_dir = Path("models/room_segmentation")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Enhanced data.yaml path
-    enhanced_yaml = output_dir / "data_enhanced.yaml"
-
-    # Create enhanced dataset configuration
-    data_config = create_enhanced_data_yaml(data_yaml, enhanced_yaml)
+    # Use original data.yaml directly (it has correct relative paths)
+    data_config = create_enhanced_data_yaml(data_yaml, data_yaml)
+    enhanced_yaml = data_yaml
 
     print(f"Classes: {data_config['names']}")
     print(f"Number of classes: {data_config['nc']}")

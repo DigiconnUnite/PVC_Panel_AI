@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Library, Upload, Eye, Menu, X } from "lucide-react";
+import { Home, Library, Upload, Eye, Menu, X, User } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -26,21 +26,23 @@ export default function Navigation() {
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
-      <div className=" mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex  justify-between h-16">
-          {/* Logo and Desktop Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
-              <div className="h-8 w-8  bg-zinc-900 rounded-lg flex items-center justify-center">
+              <div className="h-8 w-8 bg-zinc-900 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">AI</span>
               </div>
               <span className="ml-2 text-xl font-bold text-gray-900">
                 Wall Panel AI
               </span>
             </Link>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:ml-10 md:flex md:space-x-8">
+          </div>
+
+          {/* Centered Desktop Navigation */}
+          <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
+            <div className="flex space-x-8">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -61,20 +63,35 @@ export default function Navigation() {
             </div>
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
+          {/* Right side - Sign in button and mobile menu */}
+          <div className="flex items-center space-x-4">
+            {/* Sign In Button - Desktop */}
+            <div className="hidden md:block">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <User className="h-4 w-4" />
+                <span>Sign In</span>
+              </Button>
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -101,6 +118,17 @@ export default function Navigation() {
                 </Link>
               );
             })}
+            {/* Sign In Button - Mobile */}
+            <div className="pt-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full flex items-center justify-center space-x-2"
+              >
+                <User className="h-4 w-4" />
+                <span>Sign In</span>
+              </Button>
+            </div>
           </div>
         </div>
       )}

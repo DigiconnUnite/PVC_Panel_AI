@@ -11,7 +11,7 @@ export default function HomePage() {
       <div className="max-w-4xl w-full space-y-8 text-center relative z-10">
         <div className="space-y-4">
           <div className="flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-blue-600 mr-3" />
+            <Sparkles className="h-8 w-8 text-black mr-3" />
             <h1 className="text-4xl font-bold text-gray-900">AI Room Visualizer</h1>
           </div>
           <p className="text-lg text-gray-600 text-pretty max-w-2xl mx-auto">
@@ -22,42 +22,42 @@ export default function HomePage() {
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-            <Library className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <Library className="h-12 w-12 text-black mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Material Library</h3>
             <p className="text-sm text-gray-600 mb-4">
               Explore our curated collection of PVC panels, wallpapers, and paints
             </p>
             <Link
               href="/library"
-              className="inline-flex items-center rounded-md bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm hover:bg-gray-800 transition-colors"
             >
               Browse Library
             </Link>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-            <Upload className="h-12 w-12 text-green-600 mx-auto mb-4" />
+            <Upload className="h-12 w-12 text-black mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload & Analyze</h3>
             <p className="text-sm text-gray-600 mb-4">
               Upload room photos and let AI detect walls, floors, and surfaces
             </p>
             <Link
               href="/upload"
-              className="inline-flex items-center rounded-md bg-green-600 text-white px-4 py-2 text-sm hover:bg-green-700 transition-colors"
+              className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm hover:bg-gray-800 transition-colors"
             >
               Get Started
             </Link>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-            <Eye className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+            <Eye className="h-12 w-12 text-black mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Visualize Results</h3>
             <p className="text-sm text-gray-600 mb-4">
               See how different materials look in your space with realistic previews
             </p>
             <Link
               href="/visualizer"
-              className="inline-flex items-center rounded-md bg-purple-600 text-white px-4 py-2 text-sm hover:bg-purple-700 transition-colors"
+              className="inline-flex items-center rounded-md bg-black text-white px-4 py-2 text-sm hover:bg-gray-800 transition-colors"
             >
               Open Visualizer
             </Link>
@@ -65,10 +65,10 @@ export default function HomePage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center justify-center gap-4">
+        {/* <div className="flex items-center justify-center gap-4">
           <Link
             href="/upload"
-            className="inline-flex items-center rounded-md bg-primary text-primary-foreground px-6 py-3 text-base font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center rounded-md bg-black text-white px-6 py-3 text-base font-medium hover:bg-gray-800 transition-colors"
           >
             Start Your Project
           </Link>
@@ -78,7 +78,7 @@ export default function HomePage() {
           >
             Explore Materials
           </Link>
-        </div>
+        </div> */}
       </div>
     </main>
   )

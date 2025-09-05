@@ -8,7 +8,8 @@ import { useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import { analyzeImage, getProducts, visualizeRoom, API_BASE_URL } from "@/lib/api"
 import VisualizerCanvas from "@/components/visualizer-canvas"
-import { CheckCircle, Loader2, RefreshCcw, Info, Eye, Image as ImageIcon, Brush, Eraser, MousePointer2, Palette, Paintbrush, Layers, Lasso, Wand2 } from "lucide-react"
+import ThreeRoomVisualizer from "@/components/three-room-visualizer"
+import { CheckCircle, Loader2, RefreshCcw, Info, Eye, Image as ImageIcon, Brush, Eraser, MousePointer2, Palette, Paintbrush, Layers, Lasso, Wand2, Box, Image } from "lucide-react"
 import Background from "@/components/ui/Background"
 
 export default function VisualizerPage() {
@@ -32,6 +33,8 @@ export default function VisualizerPage() {
   const [tool, setTool] = useState<"select" | "brush" | "erase" | "lasso" | "magic-wand">("select")
   const [activeCategory, setActiveCategory] = useState<"wallpapers" | "paints" | "pvc-panels">("wallpapers")
   const [customMask, setCustomMask] = useState<string | null>(null)
+  const [visualizationMode, setVisualizationMode] = useState<"2d" | "3d">("2d")
+  const [textureAssignments, setTextureAssignments] = useState<{ [key: number]: string }>({})
   const masks = useMemo(() => analysis?.masks ?? [], [analysis])
 
   // Filter products by active category
@@ -68,6 +71,14 @@ export default function VisualizerPage() {
     setResultUrl(null)
     setSelectedMasks([])
     setCustomMask(null)
+    setTextureAssignments({})
+  }
+
+  function handleTextureAssign(maskIndex: number, textureId: string) {
+    setTextureAssignments(prev => ({
+      ...prev,
+      [maskIndex]: textureId
+    }))
   }
 
   function handleCustomMaskUpdate(maskDataUrl: string) {
@@ -217,34 +228,63 @@ export default function VisualizerPage() {
             <div className="relative rounded-2xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center w-full">
               {/* Tools bar overlay on canvas */}
               {!resultUrl && (
-                <div className="absolute top-4 left-4 z-20">
+                <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+                  {/* Visualization Mode Toggle */}
                   <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
-                    <ToolButton
-                      toolType="select"
-                      icon={<MousePointer2 className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="brush"
-                      icon={<Brush className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="erase"
-                      icon={<Eraser className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="lasso"
-                      icon={<Lasso className="w-4 h-4" />}
-                      label=""
-                    />
-                    <ToolButton
-                      toolType="magic-wand"
-                      icon={<Wand2 className="w-4 h-4" />}
-                      label=""
-                    />
+                    <button
+                      onClick={() => setVisualizationMode("2d")}
+                      className={`flex items-center justify-center px-3 py-1 rounded text-xs font-medium gap-1 transition ${
+                        visualizationMode === "2d"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Image className="w-4 h-4" />
+                      2D
+                    </button>
+                    <button
+                      onClick={() => setVisualizationMode("3d")}
+                      className={`flex items-center justify-center px-3 py-1 rounded text-xs font-medium gap-1 transition ${
+                        visualizationMode === "3d"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Box className="w-4 h-4" />
+                      3D
+                    </button>
                   </div>
+
+                  {/* Tools bar - only show in 2D mode */}
+                  {visualizationMode === "2d" && (
+                    <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
+                      <ToolButton
+                        toolType="select"
+                        icon={<MousePointer2 className="w-4 h-4" />}
+                        label=""
+                      />
+                      <ToolButton
+                        toolType="brush"
+                        icon={<Brush className="w-4 h-4" />}
+                        label=""
+                      />
+                      <ToolButton
+                        toolType="erase"
+                        icon={<Eraser className="w-4 h-4" />}
+                        label=""
+                      />
+                      <ToolButton
+                        toolType="lasso"
+                        icon={<Lasso className="w-4 h-4" />}
+                        label=""
+                      />
+                      <ToolButton
+                        toolType="magic-wand"
+                        icon={<Wand2 className="w-4 h-4" />}
+                        label=""
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {resultUrl ? (
@@ -260,6 +300,15 @@ export default function VisualizerPage() {
                     <span className="text-green-700 font-medium text-sm">Visualization applied!</span>
                   </div>
                 </div>
+              ) : visualizationMode === "3d" ? (
+                <ThreeRoomVisualizer
+                  imageUrl={imageUrl || "/room-photo-placeholder.png"}
+                  masks={masks}
+                  selectedMaskIndex={selectedMasks}
+                  textureAssignments={textureAssignments}
+                  onTextureAssign={handleTextureAssign}
+                  className="w-full h-[600px]"
+                />
               ) : (
                 <VisualizerCanvas
                   imageUrl={imageUrl || "/room-photo-placeholder.png"}

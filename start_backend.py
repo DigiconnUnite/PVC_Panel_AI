@@ -16,7 +16,7 @@ sys.path.insert(0, str(backend_path))
 
 def main():
     """Start the FastAPI backend server"""
-    print("🚀 Starting AI Room Visualizer Backend...")
+    print("Starting AI Room Visualizer Backend...")
 
     # Set environment variables
     os.environ.setdefault("PYTHONPATH", str(backend_path))
