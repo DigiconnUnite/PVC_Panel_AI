@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import { analyzeImage, getProducts, visualizeRoom, API_BASE_URL } from "@/lib/api"
 import VisualizerCanvas from "@/components/visualizer-canvas"
-import { CheckCircle, Loader2, RefreshCcw, Info, Eye, Image as ImageIcon, Brush, Eraser, MousePointer2, Palette, Paintbrush, Layers } from "lucide-react"
+import { CheckCircle, Loader2, RefreshCcw, Info, Eye, Image as ImageIcon, Brush, Eraser, MousePointer2, Palette, Paintbrush, Layers, Lasso, Wand2 } from "lucide-react"
 import Background from "@/components/ui/Background"
 
 export default function VisualizerPage() {
@@ -26,10 +26,10 @@ export default function VisualizerPage() {
     fallbackData: []
   })
 
-  const [selectedMask, setSelectedMask] = useState<number | null>(null)
+  const [selectedMasks, setSelectedMasks] = useState<number[]>([])
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [visualizing, setVisualizing] = useState(false)
-  const [tool, setTool] = useState<"select" | "brush" | "erase">("select")
+  const [tool, setTool] = useState<"select" | "brush" | "erase" | "lasso" | "magic-wand">("select")
   const [activeCategory, setActiveCategory] = useState<"wallpapers" | "paints" | "pvc-panels">("wallpapers")
   const [customMask, setCustomMask] = useState<string | null>(null)
   const masks = useMemo(() => analysis?.masks ?? [], [analysis])
@@ -46,13 +46,15 @@ export default function VisualizerPage() {
   }, [products, activeCategory])
 
   async function handleVisualize(productId: string) {
-    if (!imageId || (selectedMask == null && !customMask)) return
+    if (!imageId || (selectedMasks.length === 0 && !customMask)) return
     setVisualizing(true)
     try {
+      // For now, use the first selected mask for visualization
+      const maskIndex = selectedMasks.length > 0 ? selectedMasks[0] : undefined
       const out = await visualizeRoom({
         imageId,
         productId,
-        maskIndex: selectedMask ?? undefined,
+        maskIndex: maskIndex,
         customMask: customMask ?? undefined,
       })
       const abs = out.resultUrl.startsWith("http") ? out.resultUrl : `${API_BASE_URL}${out.resultUrl}`
@@ -64,17 +66,17 @@ export default function VisualizerPage() {
 
   function handleReset() {
     setResultUrl(null)
-    setSelectedMask(null)
+    setSelectedMasks([])
     setCustomMask(null)
   }
 
   function handleCustomMaskUpdate(maskDataUrl: string) {
     setCustomMask(maskDataUrl)
-    setSelectedMask(null) // Clear selected mask when using custom drawing
+    setSelectedMasks([]) // Clear selected masks when using custom drawing
   }
 
   // Tool button component for DRYness
-  function ToolButton({ toolType, icon, label }: { toolType: "select" | "brush" | "erase", icon: React.ReactNode, label: string }) {
+  function ToolButton({ toolType, icon, label }: { toolType: "select" | "brush" | "erase" | "lasso" | "magic-wand", icon: React.ReactNode, label: string }) {
     const isActive = tool === toolType
     return (
       <button
@@ -158,13 +160,13 @@ export default function VisualizerPage() {
                     filteredProducts.map((p) => (
                       <button
                         key={p.id}
-                        className={`group border rounded-xl p-2 text-left bg-slate-50 hover:bg-slate-100 transition-all duration-150 shadow-sm ${selectedMask == null ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                        className={`group border rounded-xl p-2 text-left bg-slate-50 hover:bg-slate-100 transition-all duration-150 shadow-sm ${selectedMasks.length === 0 ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
                           } ${visualizing ? "pointer-events-none opacity-50" : ""} ${resultUrl ? "opacity-40 pointer-events-none" : ""
                           }`}
                         onClick={() => handleVisualize(p.id)}
-                        disabled={(selectedMask == null && !customMask) || visualizing || !!resultUrl}
-                        aria-disabled={(selectedMask == null && !customMask) || visualizing || !!resultUrl}
-                        title={(selectedMask == null && !customMask) ? "Select a surface or draw a custom area first" : `Apply ${p.name}`}
+                        disabled={(selectedMasks.length === 0 && !customMask) || visualizing || !!resultUrl}
+                        aria-disabled={(selectedMasks.length === 0 && !customMask) || visualizing || !!resultUrl}
+                        title={(selectedMasks.length === 0 && !customMask) ? "Select a surface or draw a custom area first" : `Apply ${p.name}`}
                       >
                         <div className="aspect-square w-full overflow-hidden rounded-lg border bg-white flex items-center justify-center">
                           <img
@@ -199,8 +201,8 @@ export default function VisualizerPage() {
             )}
             <div className="text-xs text-slate-400 mt-4 flex items-center gap-2">
               <Info className="w-4 h-4" />
-              {(selectedMask == null && !customMask)
-                ? "Tip: Select a surface in the image or use brush/erase tools to draw a custom area."
+              {(selectedMasks.length === 0 && !customMask)
+                ? "Tip: Select surfaces in the image or use brush/erase tools to draw a custom area."
                 : "Now pick an item to apply to the selected surface."}
             </div>
           </aside>
@@ -227,6 +229,16 @@ export default function VisualizerPage() {
                       icon={<Eraser className="w-4 h-4" />}
                       label=""
                     />
+                    <ToolButton
+                      toolType="lasso"
+                      icon={<Lasso className="w-4 h-4" />}
+                      label=""
+                    />
+                    <ToolButton
+                      toolType="magic-wand"
+                      icon={<Wand2 className="w-4 h-4" />}
+                      label=""
+                    />
                   </div>
                 </div>
               )}
@@ -247,8 +259,8 @@ export default function VisualizerPage() {
                 <VisualizerCanvas
                   imageUrl={imageUrl || "/room-photo-placeholder.png"}
                   masks={masks}
-                  selectedMaskIndex={selectedMask}
-                  onSelectMask={setSelectedMask}
+                  selectedMaskIndex={selectedMasks}
+                  onSelectMask={setSelectedMasks}
                   tool={tool}
                   onCustomMaskUpdate={handleCustomMaskUpdate}
                 />
@@ -283,11 +295,58 @@ export default function VisualizerPage() {
           </section>
 
           {/* Right: Inspector / Actions */}
-          <aside className="bg-white border rounded-2xl shadow-lg p-6 h-fit sticky top-6 self-start min-w-[180px] max-w-[240px] flex-shrink-0">
+          <aside className="bg-white border rounded-2xl shadow-lg p-6 h-fit sticky top-6 self-start min-w-[280px] max-w-[320px] flex-shrink-0">
             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
               Inspector
             </h2>
+
+            {/* Surface Masks Panel */}
+            {masks.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">Recognized Surfaces</h3>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  {masks.map((mask, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        const newSelected = [...selectedMasks]
+                        const maskIndex = newSelected.indexOf(index)
+                        if (maskIndex > -1) {
+                          newSelected.splice(maskIndex, 1)
+                        } else {
+                          newSelected.push(index)
+                        }
+                        setSelectedMasks(newSelected)
+                      }}
+                      className={`relative p-2 border rounded-lg transition-all ${
+                        selectedMasks.includes(index)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                      title={`Surface ${index + 1} - ${selectedMasks.includes(index) ? 'Selected' : 'Click to select'}`}
+                    >
+                      <div className="aspect-square w-full overflow-hidden rounded border bg-slate-100 flex items-center justify-center">
+                        <img
+                          src={`data:image/png;base64,${mask}`}
+                          alt={`Surface ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="mt-1 text-xs text-center font-medium">
+                        #{index + 1}
+                      </div>
+                      {selectedMasks.includes(index) && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3 text-base text-slate-700">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Image ID:</span>
@@ -300,18 +359,18 @@ export default function VisualizerPage() {
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Selected:</span>
                 <span className={`px-2 py-0.5 rounded text-xs ${
-                  selectedMask != null || customMask ? "bg-primary/10 text-primary font-bold" : "bg-slate-100 text-slate-500"
+                  selectedMasks.length > 0 || customMask ? "bg-primary/10 text-primary font-bold" : "bg-slate-100 text-slate-500"
                 }`}>
-                  {selectedMask != null ? `#${selectedMask + 1}` : customMask ? "Custom" : "none"}
+                  {selectedMasks.length > 0 ? `${selectedMasks.length} surface${selectedMasks.length > 1 ? 's' : ''}` : customMask ? "Custom" : "none"}
                 </span>
               </div>
             </div>
             <button
               onClick={handleReset}
               className={`mt-6 w-full px-4 py-2 rounded-lg bg-primary text-white text-base font-semibold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow ${
-                !resultUrl && selectedMask == null ? "opacity-60 cursor-not-allowed" : ""
+                !resultUrl && selectedMasks.length === 0 ? "opacity-60 cursor-not-allowed" : ""
               }`}
-              disabled={!resultUrl && selectedMask == null && !customMask}
+              disabled={!resultUrl && selectedMasks.length === 0 && !customMask}
             >
               <RefreshCcw className="w-4 h-4" />
               {resultUrl ? "Reset visualization" : "Clear selection"}

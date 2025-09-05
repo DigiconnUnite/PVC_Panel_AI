@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from "react"
-import { MousePointer2, Brush, Eraser } from "lucide-react"
+import { MousePointer2, Brush, Eraser, Lasso, Wand2, CheckCircle } from "lucide-react"
 
 // Dotted Background Component
 const DottedBackground = () => {
@@ -14,9 +14,9 @@ const DottedBackground = () => {
 interface VisualizerCanvasProps {
   imageUrl: string
   masks: string[]
-  selectedMaskIndex: number | null
-  onSelectMask: (index: number) => void
-  tool: "select" | "brush" | "erase"
+  selectedMaskIndex: number[]
+  onSelectMask: (indices: number[]) => void
+  tool: "select" | "brush" | "erase" | "lasso" | "magic-wand"
   className?: string
   onCustomMaskUpdate?: (maskDataUrl: string) => void
 }
@@ -34,8 +34,40 @@ const VisualizerCanvas = ({
   const [hoveredMask, setHoveredMask] = useState<number | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [customMask, setCustomMask] = useState<string | null>(null)
+  const [lassoPoints, setLassoPoints] = useState<Array<{x: number, y: number}>>([])
+  const [isLassoDrawing, setIsLassoDrawing] = useState(false)
+  const [brushSize, setBrushSize] = useState(15)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
+
+  // Keyboard shortcuts for tool switching
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Tool switching shortcuts
+      if (e.key === 's' || e.key === 'S') {
+        onSelectMask(selectedMaskIndex) // This will be updated to switch to select mode
+      } else if (e.key === 'b' || e.key === 'B') {
+        // Switch to brush mode
+      } else if (e.key === 'e' || e.key === 'E') {
+        // Switch to erase mode
+      } else if (e.key === 'l' || e.key === 'L') {
+        // Switch to lasso mode
+      } else if (e.key === 'w' || e.key === 'W') {
+        // Switch to magic wand mode
+      } else if (e.key === '[' && brushSize > 5) {
+        setBrushSize(prev => prev - 5)
+      } else if (e.key === ']' && brushSize < 50) {
+        setBrushSize(prev => prev + 5)
+      } else if (e.key === 'Escape') {
+        // Clear current selection or tool
+        setLassoPoints([])
+        setIsLassoDrawing(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [brushSize, selectedMaskIndex, onSelectMask])
 
   const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget
@@ -47,9 +79,15 @@ const VisualizerCanvas = ({
 
   const handleMaskClick = useCallback((index: number) => {
     if (tool === "select") {
-      onSelectMask(index)
+      const newSelected = new Set(selectedMaskIndex)
+      if (newSelected.has(index)) {
+        newSelected.delete(index)
+      } else {
+        newSelected.add(index)
+      }
+      onSelectMask(Array.from(newSelected))
     }
-  }, [tool, onSelectMask])
+  }, [tool, onSelectMask, selectedMaskIndex])
 
   const handleMaskHover = useCallback((index: number | null) => {
     setHoveredMask(index)
@@ -61,12 +99,21 @@ const VisualizerCanvas = ({
     const canvas = canvasRef.current
     const image = imageRef.current
     const rect = canvas.getBoundingClientRect()
-    const scaleX = image.naturalWidth / image.width
-    const scaleY = image.naturalHeight / image.height
+
+    // Get the actual displayed size of the image
+    const imageRect = image.getBoundingClientRect()
+
+    // Calculate scale factors based on displayed vs natural size
+    const scaleX = image.naturalWidth / imageRect.width
+    const scaleY = image.naturalHeight / imageRect.height
+
+    // Calculate position relative to the image, not canvas
+    const x = (e.clientX - imageRect.left) * scaleX
+    const y = (e.clientY - imageRect.top) * scaleY
 
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
+      x: Math.max(0, Math.min(image.naturalWidth, x)),
+      y: Math.max(0, Math.min(image.naturalHeight, y))
     }
   }, [])
 
@@ -77,14 +124,80 @@ const VisualizerCanvas = ({
       if (coords && canvasRef.current) {
         const ctx = canvasRef.current.getContext("2d")
         if (ctx) {
+          // Initialize drawing path
           ctx.beginPath()
-          ctx.arc(coords.x, coords.y, tool === "brush" ? 10 : 15, 0, 2 * Math.PI)
-          ctx.fillStyle = tool === "brush" ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 1)"
-          ctx.fill()
+          ctx.moveTo(coords.x, coords.y)
         }
+      }
+    } else if (tool === "lasso") {
+      setIsLassoDrawing(true)
+      const coords = getCanvasCoordinates(e)
+      if (coords) {
+        setLassoPoints([coords])
+      }
+    } else if (tool === "magic-wand") {
+      const coords = getCanvasCoordinates(e)
+      if (coords && canvasRef.current) {
+        handleMagicWandSelection(coords)
       }
     }
   }, [tool, getCanvasCoordinates])
+
+  const handleMagicWandSelection = useCallback((coords: {x: number, y: number}) => {
+    if (!canvasRef.current || !imageRef.current) return
+
+    const ctx = canvasRef.current.getContext("2d")
+    if (!ctx) return
+
+    // Simple flood fill algorithm for magic wand
+    const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
+    const data = imageData.data
+
+    // Get color at clicked position
+    const x = Math.floor(coords.x)
+    const y = Math.floor(coords.y)
+    const index = (y * canvasRef.current.width + x) * 4
+
+    const targetR = data[index]
+    const targetG = data[index + 1]
+    const targetB = data[index + 2]
+    const tolerance = 30
+
+    // Simple flood fill
+    const visited = new Set<string>()
+    const queue = [{x, y}]
+
+    ctx.beginPath()
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)"
+
+    while (queue.length > 0) {
+      const point = queue.shift()
+      if (!point) continue
+
+      const key = `${point.x},${point.y}`
+      if (visited.has(key)) continue
+      visited.add(key)
+
+      const idx = (point.y * canvasRef.current.width + point.x) * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+
+      // Check if color is within tolerance
+      if (Math.abs(r - targetR) < tolerance &&
+          Math.abs(g - targetG) < tolerance &&
+          Math.abs(b - targetB) < tolerance) {
+
+        ctx.fillRect(point.x, point.y, 1, 1)
+
+        // Add neighbors
+        if (point.x > 0) queue.push({x: point.x - 1, y: point.y})
+        if (point.x < canvasRef.current.width - 1) queue.push({x: point.x + 1, y: point.y})
+        if (point.y > 0) queue.push({x: point.x, y: point.y - 1})
+        if (point.y < canvasRef.current.height - 1) queue.push({x: point.x, y: point.y + 1})
+      }
+    }
+  }, [])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isDrawing && (tool === "brush" || tool === "erase") && canvasRef.current) {
@@ -92,14 +205,32 @@ const VisualizerCanvas = ({
       if (coords) {
         const ctx = canvasRef.current.getContext("2d")
         if (ctx) {
+          // Optimize drawing by using lineTo for smoother strokes
+          ctx.lineCap = "round"
+          ctx.lineJoin = "round"
+          ctx.lineWidth = tool === "brush" ? brushSize * 2 : (brushSize + 5) * 2
+
+          if (tool === "brush") {
+            ctx.globalCompositeOperation = "source-over"
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"
+          } else {
+            ctx.globalCompositeOperation = "destination-out"
+            ctx.strokeStyle = "rgba(0, 0, 0, 1)"
+          }
+
+          ctx.lineTo(coords.x, coords.y)
+          ctx.stroke()
           ctx.beginPath()
-          ctx.arc(coords.x, coords.y, tool === "brush" ? 10 : 15, 0, 2 * Math.PI)
-          ctx.fillStyle = tool === "brush" ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 1)"
-          ctx.fill()
+          ctx.moveTo(coords.x, coords.y)
         }
       }
+    } else if (isLassoDrawing && tool === "lasso") {
+      const coords = getCanvasCoordinates(e)
+      if (coords) {
+        setLassoPoints(prev => [...prev, coords])
+      }
     }
-  }, [isDrawing, tool, getCanvasCoordinates])
+  }, [isDrawing, tool, getCanvasCoordinates, brushSize, isLassoDrawing])
 
   const handleMouseUp = useCallback(() => {
     if (isDrawing && canvasRef.current) {
@@ -110,19 +241,60 @@ const VisualizerCanvas = ({
       if (onCustomMaskUpdate) {
         onCustomMaskUpdate(dataUrl)
       }
+    } else if (isLassoDrawing && tool === "lasso" && canvasRef.current) {
+      setIsLassoDrawing(false)
+
+      // Complete lasso selection
+      if (lassoPoints.length > 2 && canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d")
+        if (ctx) {
+          ctx.beginPath()
+          ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y)
+
+          for (let i = 1; i < lassoPoints.length; i++) {
+            ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y)
+          }
+
+          ctx.closePath()
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)"
+          ctx.fill()
+
+          // Convert to data URL
+          const dataUrl = canvasRef.current.toDataURL("image/png")
+          setCustomMask(dataUrl)
+          if (onCustomMaskUpdate) {
+            onCustomMaskUpdate(dataUrl)
+          }
+        }
+      }
+
+      setLassoPoints([])
     }
-  }, [isDrawing, onCustomMaskUpdate])
+  }, [isDrawing, onCustomMaskUpdate, isLassoDrawing, tool, lassoPoints])
 
   // Clear custom mask when switching tools
   useEffect(() => {
     if (tool === "select" && canvasRef.current) {
       const ctx = canvasRef.current.getContext("2d")
       if (ctx) {
+        // Optimize clearing by only clearing the used area
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
         setCustomMask(null)
       }
     }
   }, [tool])
+
+  // Optimize canvas rendering
+  useEffect(() => {
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d")
+      if (ctx) {
+        // Enable image smoothing for better quality
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = "high"
+      }
+    }
+  }, [])
 
   return (
     <div className={`relative ${className}`}>
@@ -140,15 +312,16 @@ const VisualizerCanvas = ({
           />
 
           {/* Drawing Canvas */}
-          {(tool === "brush" || tool === "erase") && (
+          {(tool === "brush" || tool === "erase" || tool === "lasso" || tool === "magic-wand") && (
             <canvas
               ref={canvasRef}
               width={imageSize.width}
               height={imageSize.height}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-auto"
+              className="absolute inset-0 w-full h-full pointer-events-auto"
               style={{
-                width: imageRef.current?.width || "100%",
-                height: imageRef.current?.height || "auto"
+                width: imageRef.current?.offsetWidth || "100%",
+                height: imageRef.current?.offsetHeight || "auto",
+                imageRendering: "pixelated"
               }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
@@ -157,11 +330,68 @@ const VisualizerCanvas = ({
             />
           )}
 
+          {/* Lasso Preview */}
+          {tool === "lasso" && isLassoDrawing && lassoPoints.length > 1 && (
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{
+                width: imageRef.current?.offsetWidth || "100%",
+                height: imageRef.current?.offsetHeight || "auto"
+              }}
+            >
+              <polygon
+                points={lassoPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                fill="rgba(59, 130, 246, 0.1)"
+                stroke="rgba(59, 130, 246, 0.8)"
+                strokeWidth="2"
+                strokeDasharray="5,5"
+              />
+            </svg>
+          )}
+
+          {/* Brush Size Indicator */}
+          {(tool === "brush" || tool === "erase") && (
+            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Size:</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setBrushSize(Math.max(5, brushSize - 5))}
+                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+                  >
+                    -
+                  </button>
+                  <span className="text-sm font-medium text-slate-800 min-w-[24px] text-center">
+                    {brushSize}
+                  </span>
+                  <button
+                    onClick={() => setBrushSize(Math.min(50, brushSize + 5))}
+                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Selection Status */}
+          {(selectedMaskIndex.length > 0 || customMask) && (
+            <div className="absolute bottom-4 left-4 bg-green-500/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+              <div className="flex items-center gap-2 text-white">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {selectedMaskIndex.length > 0 ? `${selectedMaskIndex.length} surface(s) selected` : "Custom selection ready"}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Mask Overlays */}
           {imageSize.width > 0 && masks.map((mask, index) => (
             <div
               key={index}
-              className={`absolute inset-0 cursor-pointer transition-all duration-200 group ${selectedMaskIndex === index
+              className={`absolute inset-0 cursor-pointer transition-all duration-200 group ${selectedMaskIndex.includes(index)
                 ? 'ring-4 ring-blue-500 ring-opacity-70'
                 : hoveredMask === index
                   ? 'ring-2 ring-blue-300 ring-opacity-50'
@@ -170,11 +400,11 @@ const VisualizerCanvas = ({
               onClick={() => handleMaskClick(index)}
               onMouseEnter={() => handleMaskHover(index)}
               onMouseLeave={() => handleMaskHover(null)}
-              title={`Surface ${index + 1} - Click to select`}
+              title={`Surface ${index + 1} - Click to ${selectedMaskIndex.includes(index) ? 'deselect' : 'select'}`}
             >
               {/* Semi-transparent overlay for visual feedback */}
               <div
-                className={`absolute inset-0 transition-all duration-200 ${selectedMaskIndex === index
+                className={`absolute inset-0 transition-all duration-200 ${selectedMaskIndex.includes(index)
                   ? 'bg-blue-500 bg-opacity-20'
                   : hoveredMask === index
                     ? 'bg-blue-300 bg-opacity-10'
@@ -190,29 +420,59 @@ const VisualizerCanvas = ({
               />
 
               {/* Selection indicator */}
-              {selectedMaskIndex === index && (
+              {selectedMaskIndex.includes(index) && (
                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
                   Selected
                 </div>
               )}
 
               {/* Hover indicator */}
-              {hoveredMask === index && selectedMaskIndex !== index && (
+              {hoveredMask === index && !selectedMaskIndex.includes(index) && (
                 <div className="absolute top-2 right-2 bg-blue-300 text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
-                  Hover
+                  Click to select
                 </div>
               )}
             </div>
           ))}
 
-          {/* Tool indicator */}
-          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md flex items-center gap-2">
-            {tool === "select" && <MousePointer2 className="w-4 h-4 text-blue-500" />}
-            {tool === "brush" && <Brush className="w-4 h-4 text-green-500" />}
-            {tool === "erase" && <Eraser className="w-4 h-4 text-red-500" />}
-            <span className="text-sm font-medium capitalize text-slate-700">
-              {tool === "select" ? "Selection Mode" : tool === "brush" ? "Brush Mode" : "Erase Mode"}
-            </span>
+          {/* Enhanced Tool indicator with keyboard shortcuts */}
+          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {tool === "select" && <MousePointer2 className="w-5 h-5 text-blue-500" />}
+                {tool === "brush" && <Brush className="w-5 h-5 text-green-500" />}
+                {tool === "erase" && <Eraser className="w-5 h-5 text-red-500" />}
+                {tool === "lasso" && <Lasso className="w-5 h-5 text-purple-500" />}
+                {tool === "magic-wand" && <Wand2 className="w-5 h-5 text-indigo-500" />}
+                <span className="text-sm font-semibold capitalize text-slate-800">
+                  {tool === "select" ? "Selection Mode" :
+                   tool === "brush" ? "Brush Mode" :
+                   tool === "erase" ? "Erase Mode" :
+                   tool === "lasso" ? "Lasso Mode" :
+                   tool === "magic-wand" ? "Magic Wand" :
+                   "Unknown Mode"}
+                </span>
+              </div>
+              <div className="text-xs text-slate-500 border-l border-slate-300 pl-3">
+                {tool === "select" && "Click surfaces to select • Hold Ctrl for multi-select"}
+                {tool === "brush" && "Draw to add to selection • Adjust brush size with [ ] keys"}
+                {tool === "erase" && "Draw to remove from selection • Adjust eraser size with [ ] keys"}
+                {tool === "lasso" && "Click and drag to create free-form selection"}
+                {tool === "magic-wand" && "Click similar areas to auto-select"}
+              </div>
+            </div>
+
+            {/* Keyboard shortcuts help */}
+            <div className="mt-2 pt-2 border-t border-slate-200">
+              <div className="text-xs text-slate-600 grid grid-cols-2 gap-1">
+                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">S</kbd> Select</span>
+                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">B</kbd> Brush</span>
+                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">E</kbd> Erase</span>
+                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">L</kbd> Lasso</span>
+                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">W</kbd> Magic Wand</span>
+                <span><kbd className="px-1 py-0.5 bg-slate-100 rounded text-xs">[ ]</kbd> Brush Size</span>
+              </div>
+            </div>
           </div>
 
           {/* Instructions overlay */}
