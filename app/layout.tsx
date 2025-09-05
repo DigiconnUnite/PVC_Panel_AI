@@ -19,9 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} flex flex-col min-h-screen`}>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} flex flex-col max-h-screen min-h-screen`}>
         <Navigation />
-        <main className="flex-1 bg-gray-50">
+        <main className="flex-1 bg-gray-50 pt-16 pb-16">
           {children}
         </main>
         <Footer />
