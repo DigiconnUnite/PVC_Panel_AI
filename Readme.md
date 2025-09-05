@@ -1,184 +1,321 @@
-# AI Room Visualizer
+# 🏠 AI Room Visualizer
 
-A cutting-edge web application for visualizing interior design products on room images using advanced AI segmentation and realistic rendering.
+A cutting-edge AI-powered web application for visualizing interior design products on room photos. Upload room images, let AI detect surfaces (walls, floors, ceilings), and apply realistic product visualizations with professional tools.
 
-## 🚀 Features
+![AI Room Visualizer](https://img.shields.io/badge/AI-Powered-blue) ![Next.js](https://img.shields.io/badge/Next.js-15-black) ![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-green) ![YOLOv8](https://img.shields.io/badge/YOLOv8-Segmentation-red) ![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)
 
-### Advanced AI Segmentation
-- **Multi-Model Support**: FastSAM, SAM, DeepLab, YOLOv8
-- **Room Element Recognition**: Automatic detection of walls, floors, ceilings
-- **Intelligent Classification**: Position and shape-based surface identification
+## ✨ Features
 
-### Professional Annotation Tools
-- **Brush Tool**: Variable size painting with smooth strokes
-- **Eraser Tool**: Precise removal with adjustable size
-- **Lasso Tool**: Free-form selection with live preview
-- **Magic Wand**: Intelligent area selection based on color similarity
-- **Multi-Selection**: Select multiple surfaces simultaneously
+### 🎨 AI-Powered Segmentation
+- **Multi-Model AI**: FastSAM, YOLOv8, SAM, DeepLab integration
+- **Room Element Detection**: Automatic walls, floors, ceilings recognition
+- **Advanced Processing**: CLAHE enhancement, edge detection, surface classification
+- **Real-time Analysis**: Instant segmentation results
 
-### Realistic Visualization
-- **3D Perspective Correction**: Surface-aware texture mapping
-- **Advanced Lighting**: Multiple light sources with material-specific responses
-- **Boundary-Aware Blending**: Edge-preserving texture application
-- **Color Correction**: Intelligent lighting matching
+### 🛠️ Professional Tools
+- **Selection Tools**: Select, brush, eraser, lasso, magic wand
+- **Multi-Surface Support**: Apply materials to multiple areas
+- **Real-time Preview**: Live feedback and brush size controls
+- **Keyboard Shortcuts**: Professional workflow shortcuts
 
-### User Experience
-- **Keyboard Shortcuts**: S/B/E/L/W for tool switching
-- **Visual Feedback**: Real-time tool indicators and status
-- **Responsive Design**: Works on all devices
-- **Professional UI**: Clean, intuitive interface
+### 🎯 Product Visualization
+- **Dynamic Products**: Wallpapers, paints, PVC panels
+- **Realistic Rendering**: 3D lighting, perspective correction, material properties
+- **Customizable Overlays**: Adjustable opacity, positioning, layering
+- **High-Quality Output**: Professional visualization results
 
-## 🛠 Tech Stack
+### ☁️ Cloud Integration
+- **Free Storage**: Cloudinary/Firebase integration
+- **Image Optimization**: Compression, resizing, caching
+- **Scalable Architecture**: Serverless deployment ready
+- **Global CDN**: Fast worldwide delivery
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Radix UI
-- **AI/ML**: FastSAM, SAM, DeepLab, YOLOv8
-- **Image Processing**: Sharp, Canvas API
-- **Deployment**: Vercel (Serverless Functions)
+## 🚀 Quick Start
 
-## 📦 Installation
+### Prerequisites
+- Node.js 18+
+- Python 3.8+
+- Git
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ai-room-visualizer
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   # or
-   pnpm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   ```
-
-4. **Run development server**
-   ```bash
-   npm run dev
-   ```
-
-## 🚀 Deployment to Vercel
-
-### Method 1: Vercel CLI
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
-
-2. **Deploy**
-   ```bash
-   vercel
-   ```
-
-3. **Follow the prompts** to configure your project
-
-### Method 2: GitHub Integration
-1. **Push to GitHub**
-   ```bash
-   git add .
-   git commit -m "Ready for deployment"
-   git push origin main
-   ```
-
-2. **Connect to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Import your GitHub repository
-   - Vercel will automatically detect Next.js and configure deployment
-
-### Method 3: Manual Upload
-1. **Build the project**
-   ```bash
-   npm run build
-   ```
-
-2. **Deploy using Vercel CLI**
-   ```bash
-   vercel --prod
-   ```
-
-## ⚙️ Configuration
-
-### Environment Variables
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
-FASTSAM_WEIGHTS=FastSAM-s.pt
-SAM_MODEL_TYPE=vit_b
-DEEPLAB_MODEL=deeplabv3_resnet101
+### 1. Clone Repository
+```bash
+git clone https://github.com/DigiconnUnite/PVC_Panel_AI.git
+cd PVC_Panel_AI
 ```
 
-### Product Images
-Place product images in these directories:
+### 2. Frontend Setup
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
-public/products/
-├── wallpapers/          # Wallpaper textures
-├── paints/             # Paint color samples
-├── pvc-panels/         # PVC panel designs
-└── thumbs/             # Thumbnail images
+
+### 3. Backend Setup
+```bash
+# Install Python dependencies
+cd backend
+pip install -r requirements.txt
+
+# Start backend server
+python ../start_backend.py
 ```
 
-## 🎯 Usage
+### 4. Access Application
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
 
-1. **Upload Room Image**: Drag & drop or click to upload
-2. **AI Analysis**: Automatic segmentation of room surfaces
-3. **Select Tool**: Choose from brush, lasso, magic wand, etc.
-4. **Create Selection**: Paint or select areas to modify
-5. **Choose Product**: Select wallpaper, paint, or PVC panel
-6. **Apply Visualization**: See realistic preview instantly
+## 📁 Project Structure
 
-## 🔧 API Endpoints
+```
+ai-room-visualizer/
+├── app/                          # Next.js frontend
+│   ├── api/                      # API routes
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home page
+│   └── visualizer/              # Visualizer page
+├── backend/                      # FastAPI backend
+│   ├── app/
+│   │   ├── main.py             # FastAPI application
+│   │   ├── services/           # Business logic
+│   │   └── models/             # Data models
+│   └── requirements.txt         # Python dependencies
+├── components/                   # React components
+├── public/                       # Static assets
+│   └── products/                # Product images
+├── YOLO_SETUP_GUIDE.md          # YOLO training guide
+├── start_backend.py             # Backend startup script
+└── vercel.json                  # Vercel configuration
+```
 
-- `POST /api/upload` - Upload room images
-- `POST /api/analyze` - Run AI segmentation
-- `POST /api/visualize` - Apply product visualization
-- `GET /api/products` - Get available products
+## 🧠 AI Model Setup
 
-## 🎨 Customization
+### YOLO Model Training
+See [YOLO_SETUP_GUIDE.md](YOLO_SETUP_GUIDE.md) for comprehensive training instructions.
+
+### Model Configuration
+```python
+# Model parameters in backend/app/services/analysis.py
+model.predict(
+    imgsz=1280,          # High resolution
+    conf=0.08,           # Low confidence threshold
+    iou=0.3,             # IoU threshold
+    max_det=150,         # Maximum detections
+    agnostic_nms=False,  # Class-specific NMS
+    augment=True         # Data augmentation
+)
+```
+
+## 🎨 Product Management
 
 ### Adding New Products
-1. Add images to `public/products/[category]/`
-2. Add thumbnails to `public/products/[category]/thumbs/`
-3. Update product data in `app/api/products/route.ts`
+1. **Images**: Place in `public/products/{category}/`
+2. **Thumbnails**: Auto-generated or manual in `thumbs/` subfolder
+3. **Metadata**: Update `backend/app/main.py` products endpoint
 
-### Modifying AI Models
-- Update model configurations in `backend/app/services/model_manager.py`
-- Adjust segmentation parameters in `backend/app/services/analysis.py`
+### Supported Categories
+- **Wallpapers**: `/products/wallpapers/`
+- **Paints**: `/products/paints/`
+- **PVC Panels**: `/products/pvc-panels/`
 
-## 📱 Keyboard Shortcuts
+## ☁️ Cloud Storage Setup
 
-- `S` - Selection mode
-- `B` - Brush tool
-- `E` - Eraser tool
-- `L` - Lasso tool
-- `W` - Magic wand
-- `[ ]` - Adjust brush size
-- `Esc` - Clear selection
+### Cloudinary Integration
+```bash
+# Install SDK
+npm install cloudinary
+
+# Configure environment
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+### Firebase Storage
+```bash
+# Install SDK
+npm install firebase
+
+# Configure in .env.local
+FIREBASE_API_KEY=your_api_key
+FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+```
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+1. **Connect Repository**: Import to Vercel
+2. **Auto-Deployment**: Vercel detects Next.js automatically
+3. **Environment Variables**: Set in Vercel dashboard
+4. **Deploy**: Automatic on git push
+
+### Manual Deployment
+```bash
+# Build frontend
+npm run build
+
+# Start production server
+npm start
+
+# Backend (separate server)
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+# .env.local
+NEXT_PUBLIC_API_URL=http://localhost:8000
+PYTHONPATH=backend
+
+# Production
+VERCEL_URL=https://your-app.vercel.app
+```
+
+### Vercel Configuration
+```json
+{
+  "regions": ["iad1"],
+  "env": {
+    "PYTHONPATH": "backend"
+  }
+}
+```
+
+## 🛠️ Development
+
+### Available Scripts
+```bash
+# Frontend
+npm run dev          # Development server
+npm run build        # Production build
+npm run start        # Production server
+npm run lint         # Code linting
+
+# Backend
+python start_backend.py    # Start FastAPI server
+```
+
+### Testing AI Models
+```bash
+# Test segmentation
+curl http://localhost:8000/api/test-segmentation
+
+# Health check
+curl http://localhost:8000/health
+```
+
+## 📊 Performance Optimization
+
+### Image Processing
+- **Compression**: Automatic image optimization
+- **Caching**: Browser and CDN caching
+- **Lazy Loading**: Progressive image loading
+- **WebP Support**: Modern image formats
+
+### AI Model Optimization
+- **Model Selection**: yolov8x-seg for accuracy
+- **Batch Processing**: Efficient inference
+- **GPU Acceleration**: CUDA support
+- **Model Caching**: Pre-loaded models
+
+## 🔒 Security
+
+### API Security
+- **CORS Configuration**: Proper origin validation
+- **Input Validation**: File type and size limits
+- **Rate Limiting**: Request throttling
+- **Error Handling**: Secure error responses
+
+### Data Protection
+- **File Upload Security**: Type validation
+- **Secure Storage**: Encrypted cloud storage
+- **Access Control**: Proper authentication
+- **Privacy Compliance**: GDPR considerations
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Backend Connection Error**
+   ```bash
+   # Check backend is running
+   curl http://localhost:8000/health
+
+   # Start backend
+   python start_backend.py
+   ```
+
+2. **Model Loading Issues**
+   ```bash
+   # Check model files exist
+   ls backend/models/
+
+   # Reinstall dependencies
+   pip install -r backend/requirements.txt
+   ```
+
+3. **Vercel Deployment Issues**
+   - Check `vercel.json` configuration
+   - Verify environment variables
+   - Check build logs in Vercel dashboard
+
+4. **Memory Issues**
+   ```python
+   # Reduce model size
+   model = YOLO('yolov8m-seg.pt')  # Use medium model
+   ```
+
+## 📈 Monitoring & Analytics
+
+### Application Metrics
+- **API Response Times**: Backend performance
+- **Model Accuracy**: Detection success rates
+- **User Interactions**: Feature usage analytics
+- **Error Rates**: System reliability monitoring
+
+### AI Model Metrics
+- **mAP Scores**: Model accuracy metrics
+- **Inference Time**: Processing speed
+- **Memory Usage**: Resource consumption
+- **Detection Confidence**: Prediction reliability
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+1. **Fork** the repository
+2. **Create** feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** changes: `git commit -m 'Add amazing feature'`
+4. **Push** to branch: `git push origin feature/amazing-feature`
+5. **Open** Pull Request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Write comprehensive tests
+- Update documentation
+- Ensure cross-browser compatibility
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **FastSAM**: For efficient segmentation
-- **SAM (Segment Anything)**: For advanced masking
-- **DeepLab**: For semantic segmentation
-- **YOLOv8**: For object detection
-- **Next.js & Vercel**: For the amazing deployment platform
+- **Ultralytics** for YOLOv8 models
+- **Meta** for Segment Anything Model
+- **PyTorch** for deep learning framework
+- **Next.js** for React framework
+- **FastAPI** for Python web framework
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/DigiconnUnite/PVC_Panel_AI/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/DigiconnUnite/PVC_Panel_AI/discussions)
+- **Documentation**: [Wiki](https://github.com/DigiconnUnite/PVC_Panel_AI/wiki)
 
 ---
 
-**Built with ❤️ for interior designers and homeowners**# PVC_Panel_AI
+**Built with ❤️ for interior design professionals and homeowners**
+
+🎨 **Transform spaces with AI-powered visualization!** 🏠✨
