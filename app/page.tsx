@@ -6,9 +6,9 @@ import { Library, Upload, Eye, Sparkles } from "lucide-react"
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen relative flex items-center justify-center p-6">
+    <main className="min-h-screen relative flex items-center justify-center ">
       <Background />
-      <div className="max-w-4xl w-full space-y-8 text-center relative z-10">
+      <div className="max-w-4xl w-full  text-center relative z-10">
         <div className="space-y-4">
           <div className="flex items-center justify-center">
             <Sparkles className="h-8 w-8 text-black mr-3" />

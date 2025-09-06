@@ -237,22 +237,30 @@ const ThreeRoomVisualizer = ({
     // Add frustum culling for performance
     wall.frustumCulled = true
 
+    // Mark as wall for material assignment
+    wall.userData.type = 'wall'
+    wall.userData.position = position
+
     // Position walls
     switch (position) {
       case 'front':
         wall.position.set(0, height/2, depth/2)
+        wall.userData.maskIndex = 0 // Front wall
         break
       case 'back':
         wall.position.set(0, height/2, -depth/2)
         wall.rotation.y = Math.PI
+        wall.userData.maskIndex = 1 // Back wall
         break
       case 'left':
         wall.position.set(-width/2, height/2, 0)
         wall.rotation.y = Math.PI / 2
+        wall.userData.maskIndex = 2 // Left wall
         break
       case 'right':
         wall.position.set(width/2, height/2, 0)
         wall.rotation.y = -Math.PI / 2
+        wall.userData.maskIndex = 3 // Right wall
         break
     }
 
@@ -273,6 +281,10 @@ const ThreeRoomVisualizer = ({
     floor.receiveShadow = true
     floor.frustumCulled = true
 
+    // Mark as floor for material assignment
+    floor.userData.type = 'floor'
+    floor.userData.maskIndex = 4 // Floor
+
     parent.add(floor)
   }
 
@@ -289,6 +301,10 @@ const ThreeRoomVisualizer = ({
     ceiling.position.set(0, height, 0)
     ceiling.receiveShadow = false
     ceiling.frustumCulled = true
+
+    // Mark as ceiling for material assignment
+    ceiling.userData.type = 'ceiling'
+    ceiling.userData.maskIndex = 5 // Ceiling
 
     parent.add(ceiling)
   }
@@ -359,25 +375,55 @@ const ThreeRoomVisualizer = ({
     }
   }, [])
 
-  // Update materials when texture assignments change
+  // Update materials when texture assignments change with enhanced quality
   useEffect(() => {
     if (!roomRef.current) return
 
     const updateMaterials = async () => {
-      // Update wall materials based on assignments
-      const walls = roomRef.current!.children.filter((child: THREE.Object3D) =>
-        child.userData.type === 'wall'
+      const surfaces = roomRef.current!.children.filter((child: THREE.Object3D) =>
+        child.userData.type === 'wall' || child.userData.type === 'floor' || child.userData.type === 'ceiling'
       )
 
-      for (let i = 0; i < walls.length; i++) {
-        const wall = walls[i] as THREE.Mesh
-        const maskIndex = wall.userData.maskIndex
+      for (const surface of surfaces) {
+        const mesh = surface as THREE.Mesh
+        const maskIndex = mesh.userData.maskIndex
 
         if (textureAssignments[maskIndex]) {
-          const material = await loadPBRMaterial(textureAssignments[maskIndex])
-          if (material) {
-            wall.material = material
+          try {
+            const material = await loadPBRMaterial(textureAssignments[maskIndex])
+            if (material) {
+              // Apply high-quality material settings
+              material.needsUpdate = true
+              mesh.material = material
+              mesh.castShadow = true
+              mesh.receiveShadow = true
+            }
+          } catch (error) {
+            console.error(`Failed to load material for surface ${maskIndex}:`, error)
+            // Apply fallback material
+            const fallbackMaterial = new THREE.MeshStandardMaterial({
+              color: mesh.userData.type === 'wall' ? 0xf5f5f5 :
+                     mesh.userData.type === 'floor' ? 0xe8e8e8 : 0xffffff,
+              roughness: mesh.userData.type === 'wall' ? 0.8 :
+                        mesh.userData.type === 'floor' ? 0.9 : 0.7,
+              metalness: 0.0,
+              side: THREE.DoubleSide
+            })
+            mesh.material = fallbackMaterial
           }
+        } else {
+          // Apply default material with better quality
+          const defaultMaterial = new THREE.MeshStandardMaterial({
+            color: mesh.userData.type === 'wall' ? 0xf5f5f5 :
+                   mesh.userData.type === 'floor' ? 0xe8e8e8 : 0xffffff,
+            roughness: mesh.userData.type === 'wall' ? 0.8 :
+                      mesh.userData.type === 'floor' ? 0.9 : 0.7,
+            metalness: 0.0,
+            side: THREE.DoubleSide
+          })
+          mesh.material = defaultMaterial
+          mesh.castShadow = true
+          mesh.receiveShadow = true
         }
       }
     }
@@ -434,27 +480,32 @@ const ThreeRoomVisualizer = ({
       </div>
 
       {/* Material Assignment Panel */}
-      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-4 max-w-xs">
-        <h3 className="text-lg font-semibold mb-3">Surface Materials</h3>
-        <div className="space-y-2">
-          {selectedMaskIndex.map(index => (
-            <div key={index} className="flex items-center justify-between">
-              <span className="text-sm">Surface {index + 1}</span>
-              <select
-                className="text-xs border rounded px-2 py-1"
-                value={textureAssignments[index] || ''}
-                onChange={(e) => onTextureAssign(index, e.target.value)}
-              >
-                <option value="">Default</option>
-                <option value="WoodFloor051">Wood Floor</option>
-                <option value="Concrete034">Concrete Wall</option>
-                <option value="Bricks102">Brick Wall</option>
-                <option value="Plaster001">Plaster Ceiling</option>
-              </select>
-            </div>
-          ))}
+      {selectedMaskIndex.length > 0 && (
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-4 max-w-xs">
+          <h3 className="text-lg font-semibold mb-3">Surface Materials</h3>
+          <div className="space-y-2">
+            {selectedMaskIndex.map(index => {
+              const surfaceNames = ['Front Wall', 'Back Wall', 'Left Wall', 'Right Wall', 'Floor', 'Ceiling']
+              return (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm">{surfaceNames[index] || `Surface ${index + 1}`}</span>
+                  <select
+                    className="text-xs border rounded px-2 py-1"
+                    value={textureAssignments[index] || ''}
+                    onChange={(e) => onTextureAssign(index, e.target.value)}
+                  >
+                    <option value="">Default</option>
+                    <option value="WoodFloor051">Wood Floor</option>
+                    <option value="Concrete034">Concrete Wall</option>
+                    <option value="Bricks102">Brick Wall</option>
+                    <option value="Plaster001">Plaster Ceiling</option>
+                  </select>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

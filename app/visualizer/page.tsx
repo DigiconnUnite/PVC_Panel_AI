@@ -224,71 +224,70 @@ export default function VisualizerPage() {
           </aside>
 
           {/* Center: Canvas / Result */}
-          <section className="min-h-[320px] flex flex-col items-center flex-1 max-w-full">
-            <div className="relative rounded-2xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center w-full">
-              {/* Tools bar overlay on canvas */}
-              {!resultUrl && (
-                <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-                  {/* Visualization Mode Toggle */}
-                  <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
-                    <button
-                      onClick={() => setVisualizationMode("2d")}
-                      className={`flex items-center justify-center px-3 py-1 rounded text-xs font-medium gap-1 transition ${
-                        visualizationMode === "2d"
-                          ? "bg-primary text-primary-foreground"
-                          : "text-slate-600 hover:bg-slate-100"
+          <section className="min-h-[320px] relative flex flex-col items-center flex-1 max-w-full">
+            {/* Tools bar overlay on canvas */}
+            {!resultUrl && (
+              <div className="absolute  left-4 z-20 flex flex-row  justify-content-between gap-2">
+                {/* Visualization Mode Toggle */}
+                <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
+                  <button
+                    onClick={() => setVisualizationMode("2d")}
+                    className={`flex items-center justify-center px-3 py-1 rounded text-xs font-medium gap-1 transition ${visualizationMode === "2d"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-slate-600 hover:bg-slate-100"
                       }`}
-                    >
-                      <Image className="w-4 h-4" />
-                      2D
-                    </button>
-                    <button
-                      onClick={() => setVisualizationMode("3d")}
-                      className={`flex items-center justify-center px-3 py-1 rounded text-xs font-medium gap-1 transition ${
-                        visualizationMode === "3d"
-                          ? "bg-primary text-primary-foreground"
-                          : "text-slate-600 hover:bg-slate-100"
+                  >
+                    <Image className="w-4 h-4" />
+                    2D
+                  </button>
+                  <button
+                    onClick={() => setVisualizationMode("3d")}
+                    className={`flex items-center justify-center px-3 py-1 rounded text-xs font-medium gap-1 transition ${visualizationMode === "3d"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-slate-600 hover:bg-slate-100"
                       }`}
-                    >
-                      <Box className="w-4 h-4" />
-                      3D
-                    </button>
-                  </div>
-
-                  {/* Tools bar - only show in 2D mode */}
-                  {visualizationMode === "2d" && (
-                    <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
-                      <ToolButton
-                        toolType="select"
-                        icon={<MousePointer2 className="w-4 h-4" />}
-                        label=""
-                      />
-                      <ToolButton
-                        toolType="brush"
-                        icon={<Brush className="w-4 h-4" />}
-                        label=""
-                      />
-                      <ToolButton
-                        toolType="erase"
-                        icon={<Eraser className="w-4 h-4" />}
-                        label=""
-                      />
-                      <ToolButton
-                        toolType="lasso"
-                        icon={<Lasso className="w-4 h-4" />}
-                        label=""
-                      />
-                      <ToolButton
-                        toolType="magic-wand"
-                        icon={<Wand2 className="w-4 h-4" />}
-                        label=""
-                      />
-                    </div>
-                  )}
+                  >
+                    <Box className="w-4 h-4" />
+                    3D
+                  </button>
                 </div>
-              )}
+
+                {/* Tools bar - only show in 2D mode */}
+                {visualizationMode === "2d" && (
+                  <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
+                    <ToolButton
+                      toolType="select"
+                      icon={<MousePointer2 className="w-4 h-4" />}
+                      label=""
+                    />
+                    <ToolButton
+                      toolType="brush"
+                      icon={<Brush className="w-4 h-4" />}
+                      label=""
+                    />
+                    <ToolButton
+                      toolType="erase"
+                      icon={<Eraser className="w-4 h-4" />}
+                      label=""
+                    />
+                    <ToolButton
+                      toolType="lasso"
+                      icon={<Lasso className="w-4 h-4" />}
+                      label=""
+                    />
+                    <ToolButton
+                      toolType="magic-wand"
+                      icon={<Wand2 className="w-4 h-4" />}
+                      label=""
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="relative rounded-2xl overflow-hidden min-h-[420px] flex flex-col items-center justify-center w-full">
+
               {resultUrl ? (
-                <div className="w-full h-full flex flex-col items-center justify-center">
+                <div className="w-full top-5 relative h-full flex flex-col items-center justify-center">
                   <img
                     src={resultUrl}
                     alt="Visualization result"

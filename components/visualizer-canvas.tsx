@@ -45,6 +45,7 @@ const VisualizerCanvas = ({
   const [zoom, setZoom] = useState(1)
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
+  const [livePreviewCanvas, setLivePreviewCanvas] = useState<HTMLCanvasElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -330,6 +331,35 @@ const VisualizerCanvas = ({
     setZoom(1)
   }, [])
 
+  // Update live preview canvas
+  const updateLivePreview = useCallback(() => {
+    if (!livePreviewCanvas || !canvasRef.current) return
+
+    const previewCtx = livePreviewCanvas.getContext("2d")
+    const drawingCtx = canvasRef.current.getContext("2d")
+
+    if (previewCtx && drawingCtx) {
+      // Clear preview
+      previewCtx.clearRect(0, 0, livePreviewCanvas.width, livePreviewCanvas.height)
+
+      // Copy drawing canvas content to preview
+      const imageData = drawingCtx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
+      previewCtx.putImageData(imageData, 0, 0)
+
+      // Add a subtle glow effect for live preview
+      previewCtx.shadowColor = "rgba(59, 130, 246, 0.5)"
+      previewCtx.shadowBlur = 10
+      previewCtx.globalCompositeOperation = "source-over"
+    }
+  }, [livePreviewCanvas])
+
+  // Update live preview when drawing changes
+  useEffect(() => {
+    if (isDrawing || isLassoDrawing) {
+      updateLivePreview()
+    }
+  }, [isDrawing, isLassoDrawing, lassoPoints, updateLivePreview])
+
   return (
     <div className={`relative ${className}`}>
       <DottedBackground />
@@ -348,6 +378,24 @@ const VisualizerCanvas = ({
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
               transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+            }}
+          />
+
+          {/* Live Preview Canvas */}
+          <canvas
+            ref={(ref) => {
+              if (ref && !livePreviewCanvas) {
+                setLivePreviewCanvas(ref)
+              }
+            }}
+            width={imageSize.width}
+            height={imageSize.height}
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            style={{
+              width: imageRef.current?.offsetWidth || "100%",
+              height: imageRef.current?.offsetHeight || "auto",
+              imageRendering: "pixelated",
+              opacity: 0.8
             }}
           />
 

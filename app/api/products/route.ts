@@ -1,80 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readdir } from 'fs/promises'
-import { join } from 'path'
+import { readdir, stat } from 'fs/promises'
+import { join, extname, basename } from 'path'
 
 export async function GET() {
   try {
-    const productsDir = join(process.cwd(), 'public', 'products')
+    const productsDir = join(process.cwd(), 'products')
+    const publicProductsDir = join(process.cwd(), 'public', 'products')
 
-    // Mock products data for Vercel deployment
-    // In production, you would scan the actual product directories
-    const mockProducts = [
-      // Furniture
-      {
-        id: 'furniture-1',
-        name: 'Modern Chair',
-        type: 'furniture',
-        imageUrl: '/products/chair.png',
-        thumbnailUrl: '/products/chair.png',
-        price: 299.99,
-        brand: 'FurniCo',
-        colors: ['#8B5CF6', '#7C3AED', '#6D28D9']
-      },
-      {
-        id: 'furniture-2',
-        name: 'Comfort Sofa',
-        type: 'furniture',
-        imageUrl: '/products/sofa.png',
-        thumbnailUrl: '/products/sofa.png',
-        price: 899.99,
-        brand: 'FurniCo',
-        colors: ['#10B981', '#059669', '#047857']
-      },
+    const products: any[] = []
 
-      // PVC Panels
-      {
-        id: 'pvc-1',
-        name: 'White PVC Panel',
-        type: 'pvc-panel',
-        imageUrl: '/products/pvc-panels/white-panel.png',
-        thumbnailUrl: '/products/pvc-panels/thumbs/white-panel.png',
-        price: 28.99,
-        brand: 'PanelTech',
-        colors: ['#FFFFFF', '#F8F9FA', '#E9ECEF']
-      },
-      {
-        id: 'pvc-2',
-        name: 'Wood Grain PVC Panel',
-        type: 'pvc-panel',
-        imageUrl: '/products/pvc-panels/wood-grain.png',
-        thumbnailUrl: '/products/pvc-panels/thumbs/wood-grain.png',
-        price: 42.99,
-        brand: 'PanelTech',
-        colors: ['#92400E', '#B45309', '#D97706']
-      },
-      {
-        id: 'pvc-3',
-        name: 'Marble Effect PVC Panel',
-        type: 'pvc-panel',
-        imageUrl: '/products/pvc-panels/marble-effect.png',
-        thumbnailUrl: '/products/pvc-panels/thumbs/marble-effect.png',
-        price: 55.99,
-        brand: 'PanelTech',
-        colors: ['#E5E7EB', '#D1D5DB', '#9CA3AF']
-      },
-      {
-        id: 'pvc-4',
-        name: 'Geometric PVC Panel',
-        type: 'pvc-panel',
-        imageUrl: '/products/pvc-panels/geometric.png',
-        thumbnailUrl: '/products/pvc-panels/thumbs/geometric.png',
-        price: 48.99,
-        brand: 'PanelTech',
-        colors: ['#6B7280', '#4B5563', '#374151']
+    // Helper function to scan directory and create products
+    const scanDirectory = async (dirPath: string, type: string, categoryName: string) => {
+      try {
+        const files = await readdir(dirPath)
+        const imageFiles = files.filter(file =>
+          ['.jpg', '.jpeg', '.png', '.webp'].includes(extname(file).toLowerCase())
+        )
+
+        for (const file of imageFiles) {
+          const filePath = join(dirPath, file)
+          const fileName = basename(file, extname(file))
+
+          // Create product entry
+          const product = {
+            id: `${type}-${fileName.toLowerCase().replace(/\s+/g, '-')}`,
+            name: fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            type: type,
+            imageUrl: `/products/${categoryName}/${file}`,
+            thumbnailUrl: `/products/${categoryName}/${file}`,
+            price: type === 'pvc-panel' ? 45.99 : type === 'wallpaper' ? 25.99 : type === 'paint' ? 18.99 : 0,
+            brand: 'Custom',
+            colors: ['#FFFFFF', '#F8F9FA', '#E9ECEF']
+          }
+
+          products.push(product)
+        }
+      } catch (error) {
+        // Directory doesn't exist or can't be read, skip silently
+        console.log(`Directory ${dirPath} not accessible, skipping ${categoryName}`)
       }
-    ]
+    }
 
-    return NextResponse.json(mockProducts)
+    // Scan each product category
+    await scanDirectory(join(productsDir, 'wallpapers'), 'wallpaper', 'wallpapers')
+    await scanDirectory(join(productsDir, 'paints'), 'paint', 'paints')
+    await scanDirectory(join(productsDir, 'pvc-panels'), 'pvc-panel', 'pvc-panels')
+
+    // Also include existing public products as fallback
+    try {
+      const publicFiles = await readdir(publicProductsDir)
+      const imageFiles = publicFiles.filter(file =>
+        ['.jpg', '.jpeg', '.png', '.webp'].includes(extname(file).toLowerCase())
+      )
+
+      for (const file of imageFiles) {
+        const fileName = basename(file, extname(file))
+        const product = {
+          id: `public-${fileName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          type: 'furniture', // Default type for public products
+          imageUrl: `/products/${file}`,
+          thumbnailUrl: `/products/${file}`,
+          price: 0,
+          brand: 'Default',
+          colors: ['#8B5CF6', '#7C3AED', '#6D28D9']
+        }
+        products.push(product)
+      }
+    } catch (error) {
+      // Public products directory not accessible, skip
+    }
+
+    // If no products found, return empty array
+    if (products.length === 0) {
+      return NextResponse.json([])
+    }
+
+    return NextResponse.json(products)
 
   } catch (error) {
     console.error('Products API error:', error)
