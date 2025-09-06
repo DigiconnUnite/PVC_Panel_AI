@@ -74,3 +74,8 @@ Thumbs.db
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#ai segment
+yolov8x-seg.pt 
+yolov8x.pt 
+FastSam-s.pt 

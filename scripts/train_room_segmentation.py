@@ -39,7 +39,7 @@ def create_enhanced_data_yaml(original_yaml_path, output_path):
                     data[key] = str(abs_path)
                 else:
                     print(f"Warning: Path {abs_path} does not exist")
-                    data[key] = str(abs_path)  # Keep it anyway for YOLO to handle
+                    data[key] = str(abs_path)  # Keep it anyway for YOLO to handle 
 
     # Save enhanced data.yaml
     with open(output_path, 'w') as f:
