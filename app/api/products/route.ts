@@ -4,7 +4,7 @@ import { join, extname, basename } from 'path'
 
 export async function GET() {
   try {
-    const productsDir = join(process.cwd(), 'products')
+    const productsDir = join(process.cwd(), 'public', 'products')
     const publicProductsDir = join(process.cwd(), 'public', 'products')
 
     const products: any[] = []

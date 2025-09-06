@@ -46,6 +46,7 @@ const VisualizerCanvas = ({
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
   const [livePreviewCanvas, setLivePreviewCanvas] = useState<HTMLCanvasElement | null>(null)
+  const [showLivePreview, setShowLivePreview] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -95,6 +96,9 @@ const VisualizerCanvas = ({
         newSelected.add(index)
       }
       onSelectMask(Array.from(newSelected))
+    } else if (tool === "magic-wand") {
+      // Magic wand tool for selecting similar surfaces
+      onSelectMask([index])
     }
   }, [tool, onSelectMask, selectedMaskIndex])
 
@@ -381,23 +385,25 @@ const VisualizerCanvas = ({
             }}
           />
 
-          {/* Live Preview Canvas */}
-          <canvas
-            ref={(ref) => {
-              if (ref && !livePreviewCanvas) {
-                setLivePreviewCanvas(ref)
-              }
-            }}
-            width={imageSize.width}
-            height={imageSize.height}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{
-              width: imageRef.current?.offsetWidth || "100%",
-              height: imageRef.current?.offsetHeight || "auto",
-              imageRendering: "pixelated",
-              opacity: 0.8
-            }}
-          />
+          {/* Live Preview Canvas - only show when enabled */}
+          {showLivePreview && (
+            <canvas
+              ref={(ref) => {
+                if (ref && !livePreviewCanvas) {
+                  setLivePreviewCanvas(ref)
+                }
+              }}
+              width={imageSize.width}
+              height={imageSize.height}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{
+                width: imageRef.current?.offsetWidth || "100%",
+                height: imageRef.current?.offsetHeight || "auto",
+                imageRendering: "pixelated",
+                opacity: 0.8
+              }}
+            />
+          )}
 
           {/* Drawing Canvas */}
           {(tool === "brush" || tool === "erase" || tool === "lasso" || tool === "magic-wand") && (
@@ -437,26 +443,42 @@ const VisualizerCanvas = ({
             </svg>
           )}
 
-          {/* Brush Size Indicator */}
-          {(tool === "brush" || tool === "erase") && (
+          {/* Tools Panel */}
+          {(tool === "brush" || tool === "erase" || tool === "lasso" || tool === "magic-wand") && (
             <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">Size:</span>
-                <div className="flex items-center gap-1">
+              <div className="flex flex-col gap-2">
+                {/* Brush Size Indicator */}
+                {(tool === "brush" || tool === "erase") && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-600">Size:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setBrushSize(Math.max(5, brushSize - 5))}
+                        className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+                      >
+                        -
+                      </button>
+                      <span className="text-sm font-medium text-slate-800 min-w-[24px] text-center">
+                        {brushSize}
+                      </span>
+                      <button
+                        onClick={() => setBrushSize(Math.min(50, brushSize + 5))}
+                        className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Live Preview Toggle */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">Live Preview:</label>
                   <button
-                    onClick={() => setBrushSize(Math.max(5, brushSize - 5))}
-                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+                    onClick={() => setShowLivePreview(!showLivePreview)}
+                    className={`w-8 h-4 rounded-full transition-colors ${showLivePreview ? 'bg-green-500' : 'bg-slate-300'}`}
                   >
-                    -
-                  </button>
-                  <span className="text-sm font-medium text-slate-800 min-w-[24px] text-center">
-                    {brushSize}
-                  </span>
-                  <button
-                    onClick={() => setBrushSize(Math.min(50, brushSize + 5))}
-                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
-                  >
-                    +
+                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showLivePreview ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
               </div>
@@ -481,31 +503,27 @@ const VisualizerCanvas = ({
             <div
               key={index}
               className={`absolute inset-0 cursor-pointer transition-all duration-200 group ${selectedMaskIndex.includes(index)
-                ? 'ring-2 ring-green-500 ring-opacity-60'
-                : hoveredMask === index
-                  ? 'ring-1 ring-amber-400 ring-opacity-40'
-                  : 'ring-0'
+                ? 'ring-2 ring-green-500 ring-opacity-80'
+                : 'ring-0'
                 }`}
               onClick={() => handleMaskClick(index)}
               onMouseEnter={() => handleMaskHover(index)}
               onMouseLeave={() => handleMaskHover(null)}
               title={`Surface ${index + 1} - Click to ${selectedMaskIndex.includes(index) ? 'deselect' : 'select'}`}
             >
-              {/* Subtle overlay for visual feedback */}
+              {/* Remove overlay effect on hover - only show selection */}
               <div
                 className={`absolute inset-0 transition-all duration-200 ${selectedMaskIndex.includes(index)
-                  ? 'bg-green-500 bg-opacity-8'
-                  : hoveredMask === index
-                    ? 'bg-amber-400 bg-opacity-5'
-                    : 'bg-transparent'
+                  ? 'bg-green-500 bg-opacity-10'
+                  : 'bg-transparent'
                   }`}
               />
 
-              {/* Mask image overlay */}
+              {/* Mask image overlay - higher opacity for selected masks */}
               <img
                 src={`data:image/png;base64,${mask}`}
                 alt={`Mask ${index + 1}`}
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-50"
+                className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${selectedMaskIndex.includes(index) ? 'opacity-70' : 'opacity-30'}`}
               />
 
               {/* Selection indicator */}
@@ -515,12 +533,7 @@ const VisualizerCanvas = ({
                 </div>
               )}
 
-              {/* Hover indicator - more subtle */}
-              {hoveredMask === index && !selectedMaskIndex.includes(index) && (
-                <div className="absolute top-2 right-2 bg-amber-400 text-slate-800 text-xs px-2 py-1 rounded-full font-medium shadow-sm">
-                  Click to select
-                </div>
-              )}
+              {/* Remove hover indicator */}
             </div>
           ))}
 

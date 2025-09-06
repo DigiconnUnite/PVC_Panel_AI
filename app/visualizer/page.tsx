@@ -225,9 +225,9 @@ export default function VisualizerPage() {
 
           {/* Center: Canvas / Result */}
           <section className="min-h-[320px] relative flex flex-col items-center flex-1 max-w-full">
-            {/* Tools bar overlay on canvas */}
+            {/* Tools bar overlay on canvas - hide when result is shown */}
             {!resultUrl && (
-              <div className="absolute  left-4 z-20 flex flex-row  justify-content-between gap-2">
+              <div className="absolute left-4 z-20 flex flex-row justify-content-between gap-2">
                 {/* Visualization Mode Toggle */}
                 <div className="inline-flex gap-1 bg-white/95 border border-slate-200 rounded-lg shadow px-2 py-1 pointer-events-auto">
                   <button

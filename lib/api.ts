@@ -64,12 +64,17 @@ export async function getProducts(): Promise<Product[]> {
   const res = await fetch(`${API_BASE_URL}/api/products`)
   if (!res.ok) throw new Error(`Products failed: ${res.status}`)
   const data = await res.json()
-  
-  // Flatten the structured response into a single array
-  const products: Product[] = []
-  if (data.pvc_panels) products.push(...data.pvc_panels)
-  if (data.wallpapers) products.push(...data.wallpapers)
-  if (data.paints) products.push(...data.paints)
-  
-  return products
+
+  // Handle both flat array and structured response formats
+  if (Array.isArray(data)) {
+    // New format: flat array of products
+    return data
+  } else {
+    // Legacy format: structured response with categories
+    const products: Product[] = []
+    if (data.pvc_panels) products.push(...data.pvc_panels)
+    if (data.wallpapers) products.push(...data.wallpapers)
+    if (data.paints) products.push(...data.paints)
+    return products
+  }
 }
