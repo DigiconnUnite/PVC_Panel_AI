@@ -26,8 +26,9 @@ export default function UploadPage() {
         url: absoluteUrl,
       })
       router.push(`/visualizer?${params.toString()}`)
-    } catch (e: any) {
-      setError(e?.message || "Upload failed")
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Upload failed"
+      setError(errorMessage)
     } finally {
       setBusy(false)
     }

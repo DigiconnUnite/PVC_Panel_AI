@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readdir, stat } from 'fs/promises'
+import { readdir } from 'fs/promises'
 import { join, extname, basename } from 'path'
+
+interface Product {
+  id: string
+  name: string
+  type: string
+  imageUrl: string
+  thumbnailUrl: string
+  price: number
+  brand: string
+  colors: string[]
+}
 
 export async function GET() {
   try {
     const productsDir = join(process.cwd(), 'public', 'products')
     const publicProductsDir = join(process.cwd(), 'public', 'products')
 
-    const products: any[] = []
+    const products: Product[] = []
 
     // Helper function to scan directory and create products
     const scanDirectory = async (dirPath: string, type: string, categoryName: string) => {
