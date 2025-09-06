@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
 import path from 'path'
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams } = new URL(request.url)
   const category = searchParams.get('category')
   const query = searchParams.get('query')
@@ -50,7 +50,7 @@ print(json.dumps(result))
       cwd: process.cwd()
     })
 
-    return new Promise((resolve) => {
+    return new Promise<Response>((resolve) => {
       let data = ''
       let error = ''
 
@@ -86,7 +86,7 @@ print(json.dumps(result))
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
     const { assetId, mapType = 'color' } = await request.json()
 
@@ -107,7 +107,7 @@ print(json.dumps({'dataUrl': data_url}))
       cwd: process.cwd()
     })
 
-    return new Promise((resolve) => {
+    return new Promise<Response>((resolve) => {
       let data = ''
       let error = ''
 

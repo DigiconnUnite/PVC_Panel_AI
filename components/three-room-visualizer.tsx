@@ -40,6 +40,7 @@ const ThreeRoomVisualizer = ({
   const roomRef = useRef<THREE.Group | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const animationIdRef = useRef<number | null>(null)
 
   // Material cache to avoid reloading textures
   const materialCache = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map())
@@ -111,13 +112,12 @@ const ThreeRoomVisualizer = ({
         mountRef.current!.appendChild(renderer.domElement)
 
         // Optimized animation loop
-        let animationId: number
         const animate = () => {
-          animationId = requestAnimationFrame(animate)
+          animationIdRef.current = requestAnimationFrame(animate)
           controls.update()
           renderer.render(scene, camera)
         }
-        animationId = requestAnimationFrame(animate)
+        animationIdRef.current = requestAnimationFrame(animate)
 
         setIsLoading(false)
 
@@ -132,8 +132,8 @@ const ThreeRoomVisualizer = ({
 
     // Cleanup
     return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId)
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current)
       }
       if (rendererRef.current && mountRef.current) {
         mountRef.current.removeChild(rendererRef.current.domElement)
